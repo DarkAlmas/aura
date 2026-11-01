@@ -21,6 +21,7 @@ public partial class OverlayWindow : Window
         Ctx.Text = "СЕЙЧАС · " + Kind(fg?.Process).ToUpperInvariant();
         NextText.Text = Suggest(fg?.Process);
         OcrChk.IsChecked = App.Current.Settings.ScreenCaptureOptIn;
+        AutoChk.IsChecked = App.Current.Settings.AutoClickOptIn;
         Status.Text = App.Current.Settings.ScreenCaptureOptIn ? "OCR: по запросу" : "OCR выкл.";
         Loaded += (_, _) => { var wa = SystemParameters.WorkArea; Left = wa.Right - ActualWidth - 8; Top = wa.Bottom - ActualHeight - 8; };
         // Never Close() synchronously from activation events (WmActivate re-entrancy crash in v0.1.0).
@@ -63,7 +64,7 @@ public partial class OverlayWindow : Window
             var m = UiaFinder.Match(_all, q);
             Matches.ItemsSource = m;
             Matches.Visibility = m.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-            if (m.Count > 0) { Matches.SelectedIndex = 0; FindInfo.Text = $"Найдено: {m.Count} (из {_all.Count}). Выбери и нажми «Нажать»."; }
+            if (m.Count > 0) { Matches.SelectedIndex = 0; FindInfo.Text = $"Найдено: {m.Count} (из {_all.Count}). Выбери и нажми «Нажать»."; MaybeAuto(m.Count); }
             else
             {
                 _sel = null; PressBtn.IsEnabled = false; ClearHighlight();
@@ -78,11 +79,27 @@ public partial class OverlayWindow : Window
                 if (o == null) { FindInfo.Text = "OCR недоступен: в Windows нет языка распознавания (Параметры → Время и язык → Язык → добавить пакет с OCR)."; return; }
                 Matches.ItemsSource = o;
                 Matches.Visibility = o.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-                if (o.Count > 0) { Matches.SelectedIndex = 0; FindInfo.Text = $"UIA пусто · OCR нашёл: {o.Count}. Выбери и нажми «Нажать»."; }
+                if (o.Count > 0) { Matches.SelectedIndex = 0; FindInfo.Text = $"UIA пусто · OCR нашёл: {o.Count}. Выбери и нажми «Нажать»."; MaybeAuto(o.Count); }
                 else FindInfo.Text = "Ни UIA, ни OCR не нашли такой текст.";
             }
         }
         catch (Exception ex) { FindInfo.Text = "UIA ошибка: " + ex.Message; }
+    }
+
+    /// Auto only right after a user-started Find, only for exactly one match, only via the same 1 s «Делаю»+Стоп path.
+    void MaybeAuto(int count)
+    {
+        if (!App.Current.Settings.AutoClickOptIn || _sel == null || _acting) return;
+        if (count != 1) { FindInfo.Text += " Авто: несколько совпадений — выбери сам."; return; }
+        Press_Click(this, new RoutedEventArgs());
+    }
+
+    void AutoChk_Click(object s, RoutedEventArgs e)
+    {
+        App.Current.Settings.AutoClickOptIn = AutoChk.IsChecked == true; App.Current.Settings.Save();
+        FindInfo.Text = App.Current.Settings.AutoClickOptIn
+            ? "Авто вкл.: при одном совпадении после «Найти» сразу «Делаю» 1 с (Стоп/Esc/Пауза)."
+            : "Авто выкл.: каждый клик — только «Нажать».";
     }
 
     void OcrChk_Click(object s, RoutedEventArgs e)
@@ -127,7 +144,7 @@ public partial class OverlayWindow : Window
         var cts = new CancellationTokenSource(); App.Current.ActionCts = cts;
         PressBtn.IsEnabled = false; StopBtn.Visibility = Visibility.Visible;
         App.Current.Look.SetDoing(t.Label); App.Current.Look.Show();
-        FindInfo.Text = $"Делаю: нажимаю «{t.Label}» через 1 с… (Стоп / Esc / Пауза)";
+        FindInfo.Text = $"Делаю{(ReferenceEquals(s, this) ? " (авто)" : "")}: нажимаю «{t.Label}» через 1 с… (Стоп / Esc / Пауза)";
         try
         {
             await Task.Delay(1000, cts.Token);

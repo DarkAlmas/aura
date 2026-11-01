@@ -12,7 +12,9 @@ public sealed class Settings
     public bool ScreenCaptureOptIn { get; set; } = false;
     /// Process names (without .exe) Aura never reads context from.
     public List<string> ExcludedApps { get; set; } = new() { "KeePass", "1Password", "Bitwarden" };
-    /// v0.2 stub: targets the user allowed to auto-click (process|name). Not acted on yet; every click needs «Нажать».
+    /// v0.2.3 «разрешить авто». OFF by default. When ON: after a user-started «Найти» with exactly ONE match, the same 1 s «Делаю»+Стоп countdown starts automatically (never an instant/background click).
+    public bool AutoClickOptIn { get; set; } = false;
+    /// Legacy v0.2 stub list (unused; kept so old settings.json still loads).
     public List<string> AutoAllowed { get; set; } = new();
     public int DefaultTimerMinutes { get; set; } = 25;
 

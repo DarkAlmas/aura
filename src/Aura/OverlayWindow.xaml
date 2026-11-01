@@ -26,7 +26,7 @@
           <WrapPanel Margin="36,6,0,0">
             <Button x:Name="PressBtn" Style="{StaticResource Ghost}" Click="Press_Click" IsEnabled="False"><TextBlock Text="Нажать" FontWeight="SemiBold" Foreground="{StaticResource Accent}"/></Button>
             <Button x:Name="StopBtn" Style="{StaticResource Ghost}" Click="Stop_Click" Visibility="Collapsed"><TextBlock Text="Стоп" Foreground="OrangeRed"/></Button>
-            <CheckBox x:Name="AutoChk" Margin="8,4,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="разрешить авто (скоро)" IsEnabled="False"/>
+            <CheckBox x:Name="AutoChk" Margin="8,4,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="разрешить авто (1 совпадение → «Делаю» 1 с)" ToolTip="Выкл. по умолчанию. Только после твоего «Найти»; всегда отсчёт 1 с со Стоп/Esc/Пауза." Click="AutoChk_Click"/>
           </WrapPanel>
         </StackPanel>
       </Border>

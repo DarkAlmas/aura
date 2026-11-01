@@ -18,8 +18,21 @@ public partial class OverlayWindow : Window
         NextText.Text = Suggest(fg?.Process);
         Status.Text = App.Current.Settings.ScreenCaptureOptIn ? "OCR: opt-in (v1 не снимает)" : "OCR выкл.";
         Loaded += (_, _) => { var wa = SystemParameters.WorkArea; Left = wa.Right - ActualWidth - 8; Top = wa.Bottom - ActualHeight - 8; };
-        Deactivated += (_, _) => Close();
-        KeyDown += (_, e) => { if (e.Key == Key.Escape) Close(); };
+        // Never Close() synchronously from activation events (WmActivate re-entrancy crash in v0.1.0).
+        ContentRendered += (_, _) => _armed = true;
+        Deactivated += (_, _) => { if (_armed && IsLoaded) SafeClose(); };
+        Closing += (_, _) => _closing = true;
+        KeyDown += (_, e) => { if (e.Key == Key.Escape) SafeClose(); };
+    }
+
+    bool _armed, _closing;
+
+    // Deferred, idempotent close: safe from any event handler.
+    public void SafeClose()
+    {
+        if (_closing) return;
+        _closing = true;
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => { try { Close(); } catch (InvalidOperationException) { } }));
     }
 
     static string Kind(string? p) => (p ?? "").ToLowerInvariant() switch
@@ -48,7 +61,7 @@ public partial class OverlayWindow : Window
     void Minimize_Click(object s, RoutedEventArgs e)
     {
         if (_fg != null && Native.IsWindow(_fg.Hwnd)) Native.ShowWindow(_fg.Hwnd, Native.SW_MINIMIZE);
-        Close();
+        SafeClose();
     }
 
     void Note_Click(object s, RoutedEventArgs e)
@@ -58,7 +71,7 @@ public partial class OverlayWindow : Window
         var file = Path.Combine(dir, "notes.txt");
         File.AppendAllText(file, $"[{DateTime.Now:yyyy-MM-dd HH:mm}] {_fg?.Process ?? "-"} — {_fg?.Title ?? "-"}{Environment.NewLine}");
         System.Diagnostics.Process.Start("notepad.exe", $"\"{file}\"");
-        Close();
+        SafeClose();
     }
 
     void Timer_Click(object s, RoutedEventArgs e)
@@ -68,8 +81,8 @@ public partial class OverlayWindow : Window
         t.Tick += (_, _) => { t.Stop(); App.Current.Toast("Aura · таймер", $"{min} мин прошло."); };
         t.Start();
         App.Current.Toast("Aura · таймер", $"Запущен на {min} мин.");
-        Close();
+        SafeClose();
     }
 
-    void Close_Click(object s, RoutedEventArgs e) => Close();
+    void Close_Click(object s, RoutedEventArgs e) => SafeClose();
 }

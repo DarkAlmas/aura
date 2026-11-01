@@ -54,16 +54,17 @@ public partial class App : Application
         _look ??= new LookIndicator();
         _look.SetState(fg?.Process ?? "—", paused: false);
         _look.Show();
-        _overlay?.Close();
-        _overlay = new OverlayWindow(fg);
-        _overlay.Closed += (_, _) => { _overlay = null; _look?.Hide(); };
+        _overlay?.SafeClose();
+        var ov = new OverlayWindow(fg);
+        _overlay = ov;
+        ov.Closed += (_, _) => { if (ReferenceEquals(_overlay, ov)) { _overlay = null; _look?.Hide(); } };
         _overlay.Show(); _overlay.Activate();
     }
 
     public void TogglePause()
     {
         Settings.Paused = !Settings.Paused; Settings.Save(); SyncMenu();
-        if (Settings.Paused) { _overlay?.Close(); _look?.Hide(); }
+        if (Settings.Paused) { _overlay?.SafeClose(); _look?.Hide(); }
     }
     void ToggleOcr() { Settings.ScreenCaptureOptIn = !Settings.ScreenCaptureOptIn; Settings.Save(); SyncMenu(); }
     void SyncMenu()

@@ -13,6 +13,7 @@ public partial class OverlayWindow : Window
     public OverlayWindow(Native.WindowInfo? fg)
     {
         InitializeComponent();
+        HotkeyHint.Text = App.Current.HotkeyName;
         _fg = fg;
         Ctx.Text = "СЕЙЧАС · " + Kind(fg?.Process).ToUpperInvariant();
         NextText.Text = Suggest(fg?.Process);

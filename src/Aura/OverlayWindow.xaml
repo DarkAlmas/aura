@@ -37,7 +37,7 @@
       </Border>
       <Grid Margin="0,10,0,0">
         <Border CornerRadius="6" Background="#10FFFFFF" Padding="6,2" HorizontalAlignment="Left">
-          <TextBlock Text="Win+Shift+A" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource Muted}"/></Border>
+          <TextBlock x:Name="HotkeyHint" Text="Win+Shift+Z" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource Muted}"/></Border>
         <TextBlock x:Name="Status" HorizontalAlignment="Right" FontSize="11" Foreground="{StaticResource Muted}"/>
       </Grid>
     </StackPanel>

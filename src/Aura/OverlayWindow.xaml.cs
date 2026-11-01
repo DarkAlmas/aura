@@ -25,13 +25,28 @@ public partial class OverlayWindow : Window
         // Never Close() synchronously from activation events (WmActivate re-entrancy crash in v0.1.0).
         ContentRendered += (_, _) => _armed = true;
         Deactivated += (_, _) => { if (_armed && IsLoaded && !_acting) SafeClose(); };
-        Closing += (_, _) => _closing = true;
-        KeyDown += (_, e) => { if (e.Key == Key.Escape) { if (_acting) App.Current.ActionCts?.Cancel(); else SafeClose(); } };
+        Closing += (_, _) => { _closing = true; ClearHighlight(); };
+        Closed += (_, _) => { try { _hl?.Close(); } catch { } _hl = null; };
+        KeyDown += (_, e) => { if (e.Key == Key.Escape) { if (_acting) App.Current.ActionCts?.Cancel(); else if (_sel != null) { Matches.SelectedItem = null; } else SafeClose(); } };
     }
 
     bool _armed, _closing, _acting;
     List<UiaFinder.Target>? _all;
     UiaFinder.Target? _sel;
+    TargetHighlight? _hl;
+
+    void ShowHighlight(UiaFinder.Target t)
+    {
+        try
+        {
+            Rect r = t.Bounds;
+            try { var cur = t.Element.Current.BoundingRectangle; if (!cur.IsEmpty) r = cur; } catch { }
+            _hl ??= new TargetHighlight();
+            _hl.ShowAt(r);
+        }
+        catch { /* highlight is cosmetic */ }
+    }
+    void ClearHighlight() { try { _hl?.Hide(); } catch { } }
 
     void FindBox_KeyDown(object s, KeyEventArgs e) { if (e.Key == Key.Enter) { Find_Click(s, e); e.Handled = true; } }
 
@@ -50,7 +65,7 @@ public partial class OverlayWindow : Window
             if (m.Count > 0) { Matches.SelectedIndex = 0; FindInfo.Text = $"Найдено: {m.Count} (из {_all.Count}). Выбери и нажми «Нажать»."; }
             else
             {
-                _sel = null; PressBtn.IsEnabled = false;
+                _sel = null; PressBtn.IsEnabled = false; ClearHighlight();
                 FindInfo.Text = App.Current.Settings.ScreenCaptureOptIn
                     ? "UIA ничего не нашёл. OCR пока заглушка (будет в следующей версии)."
                     : "UIA ничего не нашёл. Для поиска по экрану включи OCR в трее (пока заглушка).";
@@ -63,7 +78,12 @@ public partial class OverlayWindow : Window
     {
         _sel = Matches.SelectedItem as UiaFinder.Target;
         PressBtn.IsEnabled = _sel != null;
-        if (_sel != null) FindInfo.Text = $"Цель: «{_sel.Label}» ({_sel.Type}) · x{(int)_sel.Bounds.X} y{(int)_sel.Bounds.Y} {(int)_sel.Bounds.Width}×{(int)_sel.Bounds.Height}";
+        if (_sel != null)
+        {
+            ShowHighlight(_sel);
+            FindInfo.Text = $"Цель подсвечена на экране: «{_sel.Label}» ({_sel.Type}). Esc — снять.";
+        }
+        else { ClearHighlight(); if (!_acting) FindInfo.Text = "Подсветка снята."; }
     }
 
     async void Press_Click(object s, RoutedEventArgs e)
@@ -79,13 +99,14 @@ public partial class OverlayWindow : Window
         try
         {
             await Task.Delay(1000, cts.Token);
+            ClearHighlight();
             Native.SetForegroundWindow(_fg.Hwnd);
             await Task.Delay(150, cts.Token);
             var how = await Task.Run(() => UiaFinder.Click(t), cts.Token);
             App.Current.Toast("Aura", $"Нажал «{t.Label}» ({how}).");
             _acting = false; SafeClose();
         }
-        catch (OperationCanceledException) { FindInfo.Text = "Остановлено."; }
+        catch (OperationCanceledException) { FindInfo.Text = "Остановлено."; Matches.SelectedItem = null; ClearHighlight(); }
         catch (Exception ex) { FindInfo.Text = "Не вышло: " + ex.Message; }
         finally
         {

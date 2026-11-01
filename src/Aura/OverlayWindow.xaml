@@ -40,6 +40,23 @@
           <StackPanel Width="270"><TextBlock Text="Следующий шаг" FontWeight="SemiBold" FontSize="14"/>
             <TextBlock x:Name="NextText" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Muted}"/></StackPanel></StackPanel>
       </Button>
+      <Border CornerRadius="12" Padding="12" Background="{StaticResource CardBg}" Margin="0,0,0,8">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Text="🎓" FontSize="16" Width="36"/><TextBlock Text="Учусь" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource Text}"/>
+            <TextBlock x:Name="LearnBadge" Margin="8,2,0,0" FontSize="12" FontWeight="Bold" Foreground="Red" Visibility="Collapsed"/></StackPanel>
+          <TextBlock x:Name="LearnInfo" Margin="36,4,0,0" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Muted}" Text="Запоминаю только твои «Нажать» через Aura. Клавиатуру, буфер и экран в фоне не читаю."/>
+          <WrapPanel Margin="36,6,0,0">
+            <Button x:Name="LearnBtn" Style="{StaticResource Ghost}" Click="Learn_Click"><TextBlock x:Name="LearnBtnText" Text="● Начать запись" Foreground="{StaticResource Accent}"/></Button>
+            <Button x:Name="LearnCancelBtn" Style="{StaticResource Ghost}" Click="LearnCancel_Click" Visibility="Collapsed"><TextBlock Text="Отменить" Foreground="{StaticResource Muted}"/></Button>
+          </WrapPanel>
+          <ListBox x:Name="MacroList" Margin="36,6,0,0" MaxHeight="110" FontSize="12" Visibility="Collapsed" SelectionChanged="MacroList_SelectionChanged"/>
+          <WrapPanel x:Name="MacroBar" Margin="36,6,0,0" Visibility="Collapsed">
+            <Button x:Name="RepeatBtn" Style="{StaticResource Ghost}" Click="Repeat_Click" IsEnabled="False"><TextBlock Text="Повторить" FontWeight="SemiBold" Foreground="{StaticResource Accent}"/></Button>
+            <Button Style="{StaticResource Ghost}" Click="MacroDelete_Click"><TextBlock Text="Удалить" Foreground="{StaticResource Muted}"/></Button>
+            <CheckBox x:Name="MacroAllowChk" Margin="8,4,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="разрешить этот макрос" ToolTip="Без разрешения «Повторить» не запустится. Каждый шаг — «Делаю» 1 с со Стоп/Esc/Пауза." Click="MacroAllow_Click"/>
+          </WrapPanel>
+        </StackPanel>
+      </Border>
       <Border CornerRadius="12" Padding="12" Background="{StaticResource CardBg}">
         <StackPanel>
           <StackPanel Orientation="Horizontal"><TextBlock Text="⚡" FontSize="16" Width="36"/><TextBlock Text="Готовое действие" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource Text}"/></StackPanel>

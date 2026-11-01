@@ -65,6 +65,7 @@ public partial class App : Application
 
     /// Cancel source for the in-flight «Делаю» action; Pause/Stop/Esc cancel it.
     public System.Threading.CancellationTokenSource? ActionCts;
+    public string LastApp = "—";
     public LookIndicator Look => _look ??= new LookIndicator();
     public string HotkeyName => _combo;
     /// Always marshal to the WPF UI thread, async so we never run inside tray/activation callbacks.
@@ -78,7 +79,8 @@ public partial class App : Application
         if (fg != null && fg.Pid == Environment.ProcessId) fg = null;
         if (fg != null && Settings.IsExcluded(fg.Process)) fg = fg with { Title = "(приложение в исключениях)" };
         _look ??= new LookIndicator();
-        _look.SetState(fg?.Process ?? "—", paused: false);
+        LastApp = fg?.Process ?? "—";
+        _look.SetState(LastApp, paused: false);
         _look.Show();
         _overlay?.SafeClose();
         var ov = new OverlayWindow(fg);

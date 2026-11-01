@@ -16,8 +16,8 @@ public partial class LookIndicator : Window
     }
     public void SetState(string app, bool paused)
     {
-        Label.Text = paused ? "Пауза" : $"Смотрю · {app}";
-        Dot.Fill = paused ? (Brush)FindResource("Muted") : (Brush)FindResource("Accent");
+        Label.Text = (paused ? "Пауза" : $"Смотрю · {app}") + (Learn.Recording ? $"  ●  Учусь · {Learn.Current!.Steps.Count} шагов" : "");
+        Dot.Fill = Learn.Recording ? Brushes.Red : paused ? (Brush)FindResource("Muted") : (Brush)FindResource("Accent");
     }
     public void SetDoing(string what)
     {

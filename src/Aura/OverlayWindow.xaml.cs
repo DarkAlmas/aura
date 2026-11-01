@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -23,6 +24,8 @@ public partial class OverlayWindow : Window
         OcrChk.IsChecked = App.Current.Settings.ScreenCaptureOptIn;
         AutoChk.IsChecked = App.Current.Settings.AutoClickOptIn;
         Status.Text = App.Current.Settings.ScreenCaptureOptIn ? "OCR: по запросу" : "OCR выкл.";
+        if (Learn.Recording && fg != null && App.Current.Settings.IsExcluded(fg.Process)) { Learn.Stop(save: false); App.Current.Toast("Aura", "Учусь остановлен и сброшен: приложение в исключениях."); }
+        SyncLearn(); LoadMacros();
         Loaded += (_, _) => { var wa = SystemParameters.WorkArea; Left = wa.Right - ActualWidth - 8; Top = wa.Bottom - ActualHeight - 8; };
         // Never Close() synchronously from activation events (WmActivate re-entrancy crash in v0.1.0).
         ContentRendered += (_, _) => _armed = true;
@@ -152,6 +155,7 @@ public partial class OverlayWindow : Window
             Native.SetForegroundWindow(_fg.Hwnd);
             await Task.Delay(150, cts.Token);
             var how = await Task.Run(() => UiaFinder.Click(t), cts.Token);
+            if (Learn.Recording) Learn.Add(_fg.Process, t);
             App.Current.Toast("Aura", $"Нажал «{t.Label}» ({how}).");
             _acting = false; SafeClose();
         }
@@ -166,6 +170,99 @@ public partial class OverlayWindow : Window
     }
 
     void Stop_Click(object s, RoutedEventArgs e) => App.Current.ActionCts?.Cancel();
+
+    // ---- v0.3.0 «Учусь» ----
+    void SyncLearn()
+    {
+        bool on = Learn.Recording;
+        LearnBadge.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        LearnBadge.Text = on ? $"● ЗАПИСЬ · {Learn.Current!.Steps.Count} шагов" : "";
+        LearnBtnText.Text = on ? "■ Стоп и сохранить" : "● Начать запись";
+        LearnCancelBtn.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+    }
+    void LoadMacros()
+    {
+        var l = Learn.List();
+        MacroList.ItemsSource = l;
+        MacroList.Visibility = MacroBar.Visibility = l.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        RepeatBtn.IsEnabled = false; MacroAllowChk.IsChecked = false;
+    }
+    void Learn_Click(object s, RoutedEventArgs e)
+    {
+        if (!Learn.Recording)
+        {
+            if (_fg != null && App.Current.Settings.IsExcluded(_fg.Process)) { LearnInfo.Text = "Приложение в исключениях — запись не начинаю."; return; }
+            Learn.Start(); LearnInfo.Text = "Учусь: найди и «Нажать» нужные кнопки по очереди (Win+Shift+Z между шагами). Потом «Стоп и сохранить».";
+        }
+        else
+        {
+            var m = Learn.Stop();
+            LearnInfo.Text = m == null ? "Запись пустая — ничего не сохранил." : $"Сохранил «{m.Name}» ({m.Steps.Count} шагов). Выбери, разреши и «Повторить».";
+            LoadMacros();
+        }
+        SyncLearn();
+    }
+    void LearnCancel_Click(object s, RoutedEventArgs e) { Learn.Stop(save: false); LearnInfo.Text = "Запись отменена."; SyncLearn(); }
+    void MacroList_SelectionChanged(object s, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        var m = MacroList.SelectedItem as Macro;
+        RepeatBtn.IsEnabled = m != null && m.Allowed && !_acting;
+        MacroAllowChk.IsChecked = m?.Allowed == true;
+        if (m != null) LearnInfo.Text = string.Join(" → ", m.Steps.Select(x => $"{x.Process}: «{x.Label}»")) + (m.Allowed ? "" : "  (сначала «разрешить этот макрос»)");
+    }
+    void MacroAllow_Click(object s, RoutedEventArgs e)
+    {
+        if (MacroList.SelectedItem is not Macro m) return;
+        m.Allowed = MacroAllowChk.IsChecked == true; Learn.Save(m);
+        RepeatBtn.IsEnabled = m.Allowed && !_acting;
+    }
+    void MacroDelete_Click(object s, RoutedEventArgs e)
+    {
+        if (MacroList.SelectedItem is not Macro m) return;
+        Learn.Delete(m); LoadMacros(); LearnInfo.Text = $"Удалил «{m.Name}».";
+    }
+    async void Repeat_Click(object s, RoutedEventArgs e)
+    {
+        if (MacroList.SelectedItem is not Macro m || _acting) return;
+        if (!m.Allowed) { LearnInfo.Text = "Сначала «разрешить этот макрос»."; return; }
+        if (Learn.Recording) { LearnInfo.Text = "Сначала останови запись."; return; }
+        _acting = true;
+        var cts = new CancellationTokenSource(); App.Current.ActionCts = cts;
+        RepeatBtn.IsEnabled = false; StopBtn.Visibility = Visibility.Visible;
+        int done = 0;
+        try
+        {
+            for (int i = 0; i < m.Steps.Count; i++)
+            {
+                var st = m.Steps[i];
+                if (App.Current.Settings.Paused) throw new OperationCanceledException();
+                if (App.Current.Settings.IsExcluded(st.Process)) { LearnInfo.Text = $"Шаг {i + 1}: {st.Process} в исключениях — остановил."; return; }
+                var (hwnd, t) = await Task.Run(() => Learn.Resolve(st), cts.Token);
+                if (t == null) { LearnInfo.Text = $"Шаг {i + 1}: не нашёл «{st.Label}» в {st.Process} — остановил."; return; }
+                ShowHighlight(t);
+                App.Current.Look.SetDoing($"{i + 1}/{m.Steps.Count} {t.Label}"); App.Current.Look.Show();
+                LearnInfo.Text = $"Делаю шаг {i + 1}/{m.Steps.Count}: «{t.Label}» через 1 с… (Стоп / Esc / Пауза)";
+                await Task.Delay(1000, cts.Token);
+                if (App.Current.Settings.Paused) throw new OperationCanceledException();
+                ClearHighlight();
+                Native.SetForegroundWindow(hwnd);
+                await Task.Delay(300, cts.Token);
+                await Task.Run(() => UiaFinder.Click(t), cts.Token);
+                done++;
+                await Task.Delay(400, cts.Token);
+            }
+            App.Current.Toast("Aura", $"Макрос «{m.Name}»: {done} шагов выполнено.");
+            LearnInfo.Text = $"Готово: {done} шагов.";
+        }
+        catch (OperationCanceledException) { LearnInfo.Text = $"Остановлено после {done} шагов."; ClearHighlight(); }
+        catch (Exception ex) { LearnInfo.Text = "Не вышло: " + ex.Message; ClearHighlight(); }
+        finally
+        {
+            _acting = false; StopBtn.Visibility = Visibility.Collapsed; RepeatBtn.IsEnabled = (MacroList.SelectedItem as Macro)?.Allowed == true;
+            App.Current.Look.SetState(_fg?.Process ?? "—", App.Current.Settings.Paused);
+            if (ReferenceEquals(App.Current.ActionCts, cts)) App.Current.ActionCts = null;
+        }
+    }
 
     // Deferred, idempotent close: safe from any event handler.
     public void SafeClose()

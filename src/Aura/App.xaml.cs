@@ -48,6 +48,7 @@ public partial class App : Application
         _tray.ContextMenuStrip = menu;
         _tray.MouseClick += (_, a) => { if (a.Button == Forms.MouseButtons.Left) RequestOverlay(); };
         SyncMenu();
+        Watcher.Sync();
 
         _hotkey = new HotkeyHost();
         _hotkey.Pressed += RequestOverlay;
@@ -66,6 +67,19 @@ public partial class App : Application
     /// Cancel source for the in-flight «Делаю» action; Pause/Stop/Esc cancel it.
     public System.Threading.CancellationTokenSource? ActionCts;
     public string LastApp = "—";
+    /// «Учусь» — runtime only, visible (red dot). While ON, every Aura «Нажать» also remembers the button. No hooks.
+    public bool Learning;
+    /// Indicator stays visible while overlay is open, «Учусь» is ON, or «Действовать» is watching.
+    public void RefreshLook()
+    {
+        try
+        {
+            if (ActionCts != null) return; // «Делаю» owns the label
+            Look.SetState(LastApp, Settings.Paused);
+            if (_overlay != null || Learning || Watcher.On) Look.Show(); else Look.Hide();
+        }
+        catch { }
+    }
     public LookIndicator Look => _look ??= new LookIndicator();
     public string HotkeyName => _combo;
     /// Always marshal to the WPF UI thread, async so we never run inside tray/activation callbacks.
@@ -85,7 +99,7 @@ public partial class App : Application
         _overlay?.SafeClose();
         var ov = new OverlayWindow(fg);
         _overlay = ov;
-        ov.Closed += (_, _) => { if (ReferenceEquals(_overlay, ov)) { _overlay = null; _look?.Hide(); } };
+        ov.Closed += (_, _) => { if (ReferenceEquals(_overlay, ov)) { _overlay = null; RefreshLook(); } };
         _overlay.Show(); _overlay.Activate();
     }
 
@@ -93,7 +107,8 @@ public partial class App : Application
     {
         Settings.Paused = !Settings.Paused; Settings.Save(); SyncMenu();
         if (Settings.Paused) ActionCts?.Cancel();
-        if (Settings.Paused) { _overlay?.SafeClose(); _look?.Hide(); }
+        if (Settings.Paused) { Learning = false; _overlay?.SafeClose(); }
+        Watcher.Sync();
     }
     void ToggleOcr() { Settings.ScreenCaptureOptIn = !Settings.ScreenCaptureOptIn; Settings.Save(); SyncMenu(); }
     public void SyncOcrMenu() => SyncMenu();

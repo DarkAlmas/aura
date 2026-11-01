@@ -5,13 +5,12 @@ using System.Text;
 
 namespace Aura;
 
-/// Only foreground-window reads + RegisterHotKey + ShowWindow. No input hooks (SetWindowsHookEx is NOT used).
+/// Only foreground-window reads + RegisterHotKey + SendInput click. No input hooks (SetWindowsHookEx is NOT used).
 public static class Native
 {
     public const int WM_HOTKEY = 0x0312;
     public const uint MOD_ALT = 0x1, MOD_CONTROL = 0x2, MOD_SHIFT = 0x4, MOD_WIN = 0x8, MOD_NOREPEAT = 0x4000;
-    public const int SW_MINIMIZE = 6;
-
+    
     [DllImport("user32.dll", SetLastError = true)] public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint mods, uint vk);
     [DllImport("user32.dll")] public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
     [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();

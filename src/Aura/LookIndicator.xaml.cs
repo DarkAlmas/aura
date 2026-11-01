@@ -16,13 +16,17 @@ public partial class LookIndicator : Window
     }
     public void SetState(string app, bool paused)
     {
-        Label.Text = (paused ? "Пауза" : $"Смотрю · {app}") + (Learn.Recording ? $"  ●  Учусь · {Learn.Current!.Steps.Count} шагов" : "");
-        Dot.Fill = Learn.Recording ? Brushes.Red : paused ? (Brush)FindResource("Muted") : (Brush)FindResource("Accent");
+        var st = App.Current.Settings;
+        Label.Text = (paused ? "Пауза" : $"Смотрю · {app}") + (App.Current.Learning ? "  ●  Учусь" : "") + (!paused && Watcher.On ? "  ·  действую" : "");
+        Dot.Fill = App.Current.Learning ? Brushes.Red : paused ? (Brush)FindResource("Muted") : (Brush)FindResource("Accent");
+        StopBtn.Visibility = Visibility.Collapsed;
     }
-    public void SetDoing(string what)
+    public void SetDoing(string what, bool stoppable = false)
     {
         Label.Text = $"Делаю · {what}";
         Dot.Fill = Brushes.OrangeRed;
+        StopBtn.Visibility = stoppable ? Visibility.Visible : Visibility.Collapsed;
     }
+    void Stop_Click(object s, RoutedEventArgs e) => App.Current.ActionCts?.Cancel();
     void Pause_Click(object s, RoutedEventArgs e) => App.Current.TogglePause();
 }

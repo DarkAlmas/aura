@@ -7,6 +7,7 @@
     <StackPanel Orientation="Horizontal">
       <Ellipse x:Name="Dot" Width="8" Height="8" Fill="{StaticResource Accent}" VerticalAlignment="Center" Margin="0,0,8,0"/>
       <TextBlock x:Name="Label" Foreground="{StaticResource Text}" FontSize="12" VerticalAlignment="Center" Text="Смотрю"/>
+      <Button x:Name="StopBtn" Style="{StaticResource Ghost}" Margin="8,0,0,0" Click="Stop_Click" Visibility="Collapsed"><TextBlock FontSize="12" Text="Стоп" Foreground="OrangeRed"/></Button>
       <Button Style="{StaticResource Ghost}" Margin="8,0,0,0" Click="Pause_Click"><TextBlock FontSize="12" Text="Пауза"/></Button>
     </StackPanel>
   </Border>

@@ -20,7 +20,8 @@ public partial class OverlayWindow : Window
         _fg = fg;
         Ctx.Text = "СЕЙЧАС · " + Kind(fg?.Process).ToUpperInvariant();
         NextText.Text = Suggest(fg?.Process);
-        Status.Text = App.Current.Settings.ScreenCaptureOptIn ? "OCR: opt-in (заглушка)" : "OCR выкл.";
+        OcrChk.IsChecked = App.Current.Settings.ScreenCaptureOptIn;
+        Status.Text = App.Current.Settings.ScreenCaptureOptIn ? "OCR: по запросу" : "OCR выкл.";
         Loaded += (_, _) => { var wa = SystemParameters.WorkArea; Left = wa.Right - ActualWidth - 8; Top = wa.Bottom - ActualHeight - 8; };
         // Never Close() synchronously from activation events (WmActivate re-entrancy crash in v0.1.0).
         ContentRendered += (_, _) => _armed = true;
@@ -40,7 +41,7 @@ public partial class OverlayWindow : Window
         try
         {
             Rect r = t.Bounds;
-            try { var cur = t.Element.Current.BoundingRectangle; if (!cur.IsEmpty) r = cur; } catch { }
+            if (t.Element != null) { try { var cur = t.Element.Current.BoundingRectangle; if (!cur.IsEmpty) r = cur; } catch { } }
             _hl ??= new TargetHighlight();
             _hl.ShowAt(r);
         }
@@ -66,12 +67,42 @@ public partial class OverlayWindow : Window
             else
             {
                 _sel = null; PressBtn.IsEnabled = false; ClearHighlight();
-                FindInfo.Text = App.Current.Settings.ScreenCaptureOptIn
-                    ? "UIA ничего не нашёл. OCR пока заглушка (будет в следующей версии)."
-                    : "UIA ничего не нашёл. Для поиска по экрану включи OCR в трее (пока заглушка).";
+                if (!App.Current.Settings.ScreenCaptureOptIn)
+                { FindInfo.Text = "UIA ничего не нашёл. Можно включить «OCR если UIA не нашёл» и искать снова."; return; }
+                if (App.Current.Settings.Paused) { FindInfo.Text = "UIA ничего не нашёл. Aura на паузе — OCR не запускаю."; return; }
+                FindInfo.Text = "UIA ничего не нашёл. Смотрю (OCR, один снимок окна)…";
+                App.Current.Look.SetDoing("OCR"); App.Current.Look.Show();
+                List<UiaFinder.Target>? o;
+                try { o = await OcrFinder.Find(hwnd, q, OverlayPx()); }
+                finally { App.Current.Look.SetState(_fg?.Process ?? "—", App.Current.Settings.Paused); }
+                if (o == null) { FindInfo.Text = "OCR недоступен: в Windows нет языка распознавания (Параметры → Время и язык → Язык → добавить пакет с OCR)."; return; }
+                Matches.ItemsSource = o;
+                Matches.Visibility = o.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+                if (o.Count > 0) { Matches.SelectedIndex = 0; FindInfo.Text = $"UIA пусто · OCR нашёл: {o.Count}. Выбери и нажми «Нажать»."; }
+                else FindInfo.Text = "Ни UIA, ни OCR не нашли такой текст.";
             }
         }
         catch (Exception ex) { FindInfo.Text = "UIA ошибка: " + ex.Message; }
+    }
+
+    void OcrChk_Click(object s, RoutedEventArgs e)
+    {
+        App.Current.Settings.ScreenCaptureOptIn = OcrChk.IsChecked == true; App.Current.Settings.Save();
+        App.Current.SyncOcrMenu();
+        Status.Text = App.Current.Settings.ScreenCaptureOptIn ? "OCR: по запросу" : "OCR выкл.";
+    }
+
+    /// Overlay bounds in physical px, so OCR never returns Aura's own text.
+    Rect OverlayPx()
+    {
+        try
+        {
+            var src = PresentationSource.FromVisual(this);
+            if (src?.CompositionTarget == null) return Rect.Empty;
+            var m = src.CompositionTarget.TransformToDevice;
+            return new Rect(Left * m.M11, Top * m.M22, ActualWidth * m.M11, ActualHeight * m.M22);
+        }
+        catch { return Rect.Empty; }
     }
 
     void Matches_SelectionChanged(object s, System.Windows.Controls.SelectionChangedEventArgs e)
@@ -90,6 +121,7 @@ public partial class OverlayWindow : Window
     {
         if (_sel == null || _fg == null || _acting) return;
         if (App.Current.Settings.Paused) { FindInfo.Text = "Aura на паузе."; return; }
+        if (App.Current.Settings.IsExcluded(_fg.Process)) { FindInfo.Text = "Приложение в исключениях — не нажимаю."; return; }
         var t = _sel;
         _acting = true;
         var cts = new CancellationTokenSource(); App.Current.ActionCts = cts;

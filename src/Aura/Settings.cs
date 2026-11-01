@@ -8,7 +8,7 @@ namespace Aura;
 public sealed class Settings
 {
     public bool Paused { get; set; }
-    /// Screenshot/OCR opt-in. OFF by default. v0.2: OCR still a stub; UIA path never needs it.
+    /// OCR fallback opt-in («OCR если UIA не нашёл»). OFF by default. Only used once per user-started search when UIA found nothing.
     public bool ScreenCaptureOptIn { get; set; } = false;
     /// Process names (without .exe) Aura never reads context from.
     public List<string> ExcludedApps { get; set; } = new() { "KeePass", "1Password", "Bitwarden" };

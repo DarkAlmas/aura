@@ -9,7 +9,7 @@ namespace Aura;
 /// No hooks, no screenshots, nothing leaves the PC.
 public static class UiaFinder
 {
-    public sealed record Target(string Name, string AutomationId, string Type, Rect Bounds, AutomationElement Element)
+    public sealed record Target(string Name, string AutomationId, string Type, Rect Bounds, AutomationElement? Element)
     {
         public string Label => string.IsNullOrWhiteSpace(Name) ? $"[{AutomationId}]" : Name;
         public override string ToString() => $"{Label} · {Type} · {(int)Bounds.X},{(int)Bounds.Y} {(int)Bounds.Width}×{(int)Bounds.Height}";
@@ -66,6 +66,7 @@ public static class UiaFinder
     public static string Click(Target t)
     {
         var el = t.Element;
+        if (el == null) { Native.ClickAt((int)(t.Bounds.X + t.Bounds.Width / 2), (int)(t.Bounds.Y + t.Bounds.Height / 2)); return "мышь (OCR)"; }
         try
         {
             if (el.TryGetCurrentPattern(InvokePattern.Pattern, out var p)) { ((InvokePattern)p).Invoke(); return "Invoke"; }

@@ -40,7 +40,7 @@ public partial class App : Application
         var menu = new Forms.ContextMenuStrip();
         var openItem = menu.Items.Add("Открыть (Win+Shift+Z)", null, (_, _) => RequestOverlay());
         _pauseItem = new Forms.ToolStripMenuItem("Пауза", null, (_, _) => TogglePause());
-        _ocrItem = new Forms.ToolStripMenuItem("Скрин/OCR (opt-in, заглушка)", null, (_, _) => ToggleOcr());
+        _ocrItem = new Forms.ToolStripMenuItem("OCR если UIA не нашёл (opt-in)", null, (_, _) => ToggleOcr());
         menu.Items.Add(_pauseItem); menu.Items.Add(_ocrItem);
         menu.Items.Add("Настройки (settings.json)", null, (_, _) => OpenPath(Settings.Dir));
         menu.Items.Add(new Forms.ToolStripSeparator());
@@ -94,6 +94,7 @@ public partial class App : Application
         if (Settings.Paused) { _overlay?.SafeClose(); _look?.Hide(); }
     }
     void ToggleOcr() { Settings.ScreenCaptureOptIn = !Settings.ScreenCaptureOptIn; Settings.Save(); SyncMenu(); }
+    public void SyncOcrMenu() => SyncMenu();
     void SyncMenu()
     {
         if (_pauseItem != null) _pauseItem.Checked = Settings.Paused;

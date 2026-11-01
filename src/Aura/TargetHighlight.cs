@@ -7,7 +7,7 @@ using System.Windows.Media;
 
 namespace Aura;
 
-/// v0.2.1: temporary on-screen frame over the selected UIA target's BoundingRectangle.
+/// v0.2.1: temporary on-screen frame over the selected UIA target's BoundingRectangle (v0.2.2: or OCR hit box).
 /// Click-through (WS_EX_TRANSPARENT), never activates (WS_EX_NOACTIVATE), no capture, no hooks.
 /// Lives only while the overlay is open; hidden on Esc / Стоп / close / clear selection.
 public sealed class TargetHighlight : Window

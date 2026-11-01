@@ -22,6 +22,7 @@
           </Grid>
           <ListBox x:Name="Matches" Margin="36,6,0,0" MaxHeight="140" FontSize="12" Visibility="Collapsed" SelectionChanged="Matches_SelectionChanged"/>
           <TextBlock x:Name="FindInfo" Margin="36,6,0,0" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Muted}" Text="Ищу через UI Automation в активном окне. Скрин не снимаю."/>
+          <CheckBox x:Name="OcrChk" Margin="36,6,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="OCR если UIA не нашёл (снимок только этого окна, в памяти)" Click="OcrChk_Click"/>
           <WrapPanel Margin="36,6,0,0">
             <Button x:Name="PressBtn" Style="{StaticResource Ghost}" Click="Press_Click" IsEnabled="False"><TextBlock Text="Нажать" FontWeight="SemiBold" Foreground="{StaticResource Accent}"/></Button>
             <Button x:Name="StopBtn" Style="{StaticResource Ghost}" Click="Stop_Click" Visibility="Collapsed"><TextBlock Text="Стоп" Foreground="OrangeRed"/></Button>

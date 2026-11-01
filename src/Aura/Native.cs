@@ -21,6 +21,23 @@ public static class Native
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
     [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr h);
 
+    [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+    [DllImport("user32.dll")] static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll", SetLastError = true)] static extern uint SendInput(uint n, INPUT[] inputs, int size);
+    [StructLayout(LayoutKind.Sequential)] struct MOUSEINPUT { public int dx, dy; public uint mouseData, dwFlags, time; public IntPtr extra; }
+    [StructLayout(LayoutKind.Sequential)] struct INPUT { public uint type; public MOUSEINPUT mi; }
+    const uint LEFTDOWN = 0x2, LEFTUP = 0x4;
+
+    /// One synthetic left click, only after explicit user confirmation in the overlay. Not a hook.
+    public static void ClickAt(int x, int y)
+    {
+        SetCursorPos(x, y);
+        var a = new INPUT[2];
+        a[0].type = 0; a[0].mi.dwFlags = LEFTDOWN;
+        a[1].type = 0; a[1].mi.dwFlags = LEFTUP;
+        SendInput(2, a, Marshal.SizeOf<INPUT>());
+    }
+
     public record WindowInfo(IntPtr Hwnd, string Title, string Process, int Pid);
 
     public static WindowInfo? Foreground()

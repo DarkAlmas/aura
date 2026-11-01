@@ -19,5 +19,10 @@ public partial class LookIndicator : Window
         Label.Text = paused ? "Пауза" : $"Смотрю · {app}";
         Dot.Fill = paused ? (Brush)FindResource("Muted") : (Brush)FindResource("Accent");
     }
+    public void SetDoing(string what)
+    {
+        Label.Text = $"Делаю · {what}";
+        Dot.Fill = Brushes.OrangeRed;
+    }
     void Pause_Click(object s, RoutedEventArgs e) => App.Current.TogglePause();
 }

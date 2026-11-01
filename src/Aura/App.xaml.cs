@@ -40,7 +40,7 @@ public partial class App : Application
         var menu = new Forms.ContextMenuStrip();
         var openItem = menu.Items.Add("Открыть (Win+Shift+Z)", null, (_, _) => RequestOverlay());
         _pauseItem = new Forms.ToolStripMenuItem("Пауза", null, (_, _) => TogglePause());
-        _ocrItem = new Forms.ToolStripMenuItem("Скрин/OCR (opt-in, v1 заглушка)", null, (_, _) => ToggleOcr());
+        _ocrItem = new Forms.ToolStripMenuItem("Скрин/OCR (opt-in, заглушка)", null, (_, _) => ToggleOcr());
         menu.Items.Add(_pauseItem); menu.Items.Add(_ocrItem);
         menu.Items.Add("Настройки (settings.json)", null, (_, _) => OpenPath(Settings.Dir));
         menu.Items.Add(new Forms.ToolStripSeparator());
@@ -63,6 +63,9 @@ public partial class App : Application
         if (Array.Exists(e.Args, a => a == "--open")) RequestOverlay();
     }
 
+    /// Cancel source for the in-flight «Делаю» action; Pause/Stop/Esc cancel it.
+    public System.Threading.CancellationTokenSource? ActionCts;
+    public LookIndicator Look => _look ??= new LookIndicator();
     public string HotkeyName => _combo;
     /// Always marshal to the WPF UI thread, async so we never run inside tray/activation callbacks.
     void RequestOverlay() => Dispatcher.BeginInvoke(new Action(ShowOverlay));
@@ -87,6 +90,7 @@ public partial class App : Application
     public void TogglePause()
     {
         Settings.Paused = !Settings.Paused; Settings.Save(); SyncMenu();
+        if (Settings.Paused) ActionCts?.Cancel();
         if (Settings.Paused) { _overlay?.SafeClose(); _look?.Hide(); }
     }
     void ToggleOcr() { Settings.ScreenCaptureOptIn = !Settings.ScreenCaptureOptIn; Settings.Save(); SyncMenu(); }

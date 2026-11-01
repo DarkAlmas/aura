@@ -8,10 +8,12 @@ namespace Aura;
 public sealed class Settings
 {
     public bool Paused { get; set; }
-    /// Screenshot/OCR opt-in. OFF by default. v1: stub, nothing is captured even when true.
+    /// Screenshot/OCR opt-in. OFF by default. v0.2: OCR still a stub; UIA path never needs it.
     public bool ScreenCaptureOptIn { get; set; } = false;
     /// Process names (without .exe) Aura never reads context from.
     public List<string> ExcludedApps { get; set; } = new() { "KeePass", "1Password", "Bitwarden" };
+    /// v0.2 stub: targets the user allowed to auto-click (process|name). Not acted on yet; every click needs «Нажать».
+    public List<string> AutoAllowed { get; set; } = new();
     public int DefaultTimerMinutes { get; set; } = 25;
 
     public static string Dir => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Aura");

@@ -13,6 +13,22 @@
         <Button Style="{StaticResource Ghost}" HorizontalAlignment="Right" VerticalAlignment="Top" Click="Close_Click"><TextBlock Text="×" FontSize="16"/></Button>
       </Grid>
 
+      <Border CornerRadius="12" Padding="12" Background="{StaticResource CardBg}" Margin="0,0,0,8">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Text="🎯" FontSize="16" Width="36"/><TextBlock Text="Найти и нажать" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource Text}"/></StackPanel>
+          <Grid Margin="36,6,0,0">
+            <TextBox x:Name="FindBox" Margin="0,0,70,0" Padding="4,3" FontSize="12" ToolTip="Название кнопки (пусто — все)" KeyDown="FindBox_KeyDown"/>
+            <Button Style="{StaticResource Ghost}" HorizontalAlignment="Right" Click="Find_Click"><TextBlock Text="Найти" Foreground="{StaticResource Accent}"/></Button>
+          </Grid>
+          <ListBox x:Name="Matches" Margin="36,6,0,0" MaxHeight="140" FontSize="12" Visibility="Collapsed" SelectionChanged="Matches_SelectionChanged"/>
+          <TextBlock x:Name="FindInfo" Margin="36,6,0,0" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Muted}" Text="Ищу через UI Automation в активном окне. Скрин не снимаю."/>
+          <WrapPanel Margin="36,6,0,0">
+            <Button x:Name="PressBtn" Style="{StaticResource Ghost}" Click="Press_Click" IsEnabled="False"><TextBlock Text="Нажать" FontWeight="SemiBold" Foreground="{StaticResource Accent}"/></Button>
+            <Button x:Name="StopBtn" Style="{StaticResource Ghost}" Click="Stop_Click" Visibility="Collapsed"><TextBlock Text="Стоп" Foreground="OrangeRed"/></Button>
+            <CheckBox x:Name="AutoChk" Margin="8,4,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="разрешить авто (скоро)" IsEnabled="False"/>
+          </WrapPanel>
+        </StackPanel>
+      </Border>
       <Button Style="{StaticResource Card}" Click="Screen_Click">
         <StackPanel Orientation="Horizontal"><TextBlock Text="👁" FontSize="16" Width="36"/>
           <StackPanel Width="270"><TextBlock Text="Что на экране" FontWeight="SemiBold" FontSize="14"/>

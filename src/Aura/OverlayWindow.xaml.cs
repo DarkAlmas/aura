@@ -110,7 +110,7 @@ public partial class OverlayWindow : Window
     void Matches_SelectionChanged(object s, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         _sel = Matches.SelectedItem as UiaFinder.Target;
-        PressBtn.IsEnabled = _sel != null; RememberBtn.IsEnabled = _sel?.Element != null;
+        PressBtn.IsEnabled = _sel != null; RememberBtn.IsEnabled = _sel != null && !string.IsNullOrWhiteSpace(_sel.Name);
         if (_sel != null)
         {
             ShowHighlight(_sel);
@@ -177,7 +177,7 @@ public partial class OverlayWindow : Window
     {
         if (_sel == null || _fg == null) return;
         var b = Buttons.Remember(_fg.Process, _sel);
-        LearnInfo.Text = b == null ? "Не запомнил: пустое имя, OCR-результат или приложение в исключениях." : $"Запомнил: {b.Label} ({b.Process}).";
+        LearnInfo.Text = b == null ? "Не запомнил: пустое имя или приложение в исключениях." : $"Запомнил: {b.Label} ({b.Process}).";
         if (b != null) App.Current.Toast("Aura", $"Запомнил: {b.Label}");
         LoadButtons();
     }

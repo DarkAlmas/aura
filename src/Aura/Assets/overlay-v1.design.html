@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aura — Design Formal v1</title>
+<style>
+  :root {
+    --bg: #0c0e12;
+    --mica: rgba(32, 36, 44, 0.72);
+    --mica-border: rgba(255,255,255,0.08);
+    --text: #f3f4f6;
+    --muted: #9aa3b2;
+    --accent: #60a5fa;
+    --accent-soft: rgba(96,165,250,0.18);
+    --ok: #34d399;
+    --danger: #f87171;
+    --radius: 14px;
+    --shadow: 0 12px 40px rgba(0,0,0,.45);
+    --font: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; font-family: var(--font); color: var(--text);
+    background:
+      linear-gradient(135deg, #1a2332 0%, #0c0e12 40%, #12161f 100%);
+    display: grid; place-items: center; padding: 24px;
+  }
+  .desk {
+    width: min(1100px, 100%); aspect-ratio: 16/10; position: relative;
+    border-radius: 12px; overflow: hidden; border: 1px solid #2a3140;
+    background: #15202b url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cpath d='M0 80V0h80' fill='none' stroke='%231c2733' stroke-width='1'/%3E%3C/svg%3E");
+    box-shadow: var(--shadow);
+  }
+  .fake-chrome {
+    height: 36px; background: #1e2633; display: flex; align-items: center; gap: 8px; padding: 0 12px;
+    border-bottom: 1px solid #2a3140; font-size: 12px; color: var(--muted);
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .fake-page { padding: 28px 36px; color: #c5d0dc; }
+  .fake-page h1 { margin: 0 0 8px; font-size: 22px; font-weight: 600; color: #e8eef6; }
+  .fake-page p { margin: 0; max-width: 42ch; line-height: 1.5; font-size: 14px; }
+
+  /* Looking indicator (always visible when active) */
+  .look {
+    position: absolute; top: 52px; right: 18px; z-index: 5;
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; border-radius: 999px;
+    background: var(--mica); backdrop-filter: blur(24px) saturate(1.4);
+    border: 1px solid var(--mica-border); box-shadow: var(--shadow);
+    font-size: 12px; color: var(--text);
+  }
+  .look .pulse {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+    box-shadow: 0 0 0 0 var(--accent-soft); animation: pulse 1.6s ease-out infinite;
+  }
+  .look.paused .pulse { background: var(--muted); animation: none; }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(96,165,250,.45); }
+    100% { box-shadow: 0 0 0 10px rgba(96,165,250,0); }
+  }
+  .look button {
+    margin-left: 4px; border: 0; background: transparent; color: var(--muted);
+    font: inherit; cursor: pointer; padding: 2px 6px; border-radius: 6px;
+  }
+  .look button:hover { background: rgba(255,255,255,.06); color: var(--text); }
+
+  /* Overlay panel */
+  .overlay {
+    position: absolute; right: 28px; bottom: 56px; width: 340px; z-index: 6;
+    background: var(--mica); backdrop-filter: blur(28px) saturate(1.5);
+    border: 1px solid var(--mica-border); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 14px; display: flex; flex-direction: column; gap: 10px;
+    animation: in .16s ease-out;
+  }
+  @keyframes in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+  .overlay header {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+  }
+  .overlay .ctx { font-size: 11px; color: var(--muted); letter-spacing: .02em; text-transform: uppercase; }
+  .overlay h2 { margin: 2px 0 0; font-size: 16px; font-weight: 600; line-height: 1.25; }
+  .overlay .x {
+    width: 28px; height: 28px; border: 0; border-radius: 8px; background: transparent;
+    color: var(--muted); cursor: pointer; font-size: 16px;
+  }
+  .overlay .x:hover { background: rgba(255,255,255,.06); color: var(--text); }
+
+  .card {
+    display: flex; gap: 12px; align-items: flex-start; text-align: left;
+    width: 100%; padding: 12px; border-radius: 12px;
+    border: 1px solid transparent; background: rgba(255,255,255,.04);
+    color: inherit; font: inherit; cursor: pointer; transition: background .12s, border-color .12s;
+  }
+  .card:hover { background: var(--accent-soft); border-color: rgba(96,165,250,.35); }
+  .card .ico {
+    width: 36px; height: 36px; border-radius: 10px; flex: 0 0 auto;
+    display: grid; place-items: center; background: rgba(255,255,255,.06); font-size: 16px;
+  }
+  .card b { display: block; font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .card span { display: block; font-size: 12px; color: var(--muted); line-height: 1.35; }
+
+  .foot {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-top: 2px; font-size: 11px; color: var(--muted);
+  }
+  .foot a { color: var(--accent); text-decoration: none; }
+  .hotkey {
+    font-family: ui-monospace, Consolas, monospace; font-size: 10px;
+    padding: 2px 6px; border-radius: 6px; background: rgba(255,255,255,.06);
+  }
+
+  .tray {
+    position: absolute; right: 16px; bottom: 10px; display: flex; gap: 10px; align-items: center;
+    font-size: 11px; color: var(--muted);
+  }
+  .tray .badge {
+    width: 22px; height: 22px; border-radius: 6px; background: #243044;
+    display: grid; place-items: center; color: var(--accent); font-size: 12px;
+  }
+
+  .spec {
+    width: min(1100px, 100%); margin-top: 18px; color: #c7d0dc; font-size: 13px; line-height: 1.55;
+  }
+  .spec h3 { margin: 0 0 8px; color: #fff; font-size: 15px; }
+  .spec ul { margin: 0; padding-left: 1.2em; }
+  .spec code { font-size: 12px; background: #1a2230; padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+  <div class="desk" id="desk" aria-label="Макет рабочего стола">
+    <div class="fake-chrome"><span class="dot" style="background:#f87171"></span><span class="dot" style="background:#fbbf24"></span><span class="dot" style="background:#34d399"></span>
+      &nbsp; Edge — учёба · GitHub</div>
+    <div class="fake-page">
+      <h1>Практическая работа</h1>
+      <p>Фоновое окно для макета. Хоткей вызывает оверлей поверх любого foreground-приложения.</p>
+    </div>
+
+    <div class="look" id="look" title="Индикатор всегда виден, пока сессия активна">
+      <span class="pulse" aria-hidden="true"></span>
+      <span id="lookLabel">Смотрю · Edge</span>
+      <button type="button" id="pauseBtn">Пауза</button>
+    </div>
+
+    <aside class="overlay" id="overlay" role="dialog" aria-label="Подсказки помощника">
+      <header>
+        <div>
+          <div class="ctx">Сейчас · браузер</div>
+          <h2>Что помочь сделать?</h2>
+        </div>
+        <button type="button" class="x" id="closeBtn" aria-label="Закрыть">×</button>
+      </header>
+
+      <button type="button" class="card">
+        <span class="ico" aria-hidden="true">👁</span>
+        <span><b>Что на экране</b><span>Кратко: заголовок окна + видимый текст (OCR opt-in)</span></span>
+      </button>
+      <button type="button" class="card">
+        <span class="ico" aria-hidden="true">➡️</span>
+        <span><b>Следующий шаг</b><span>Подсказка по контексту: сохранить / открыть нужное / продолжить</span></span>
+      </button>
+      <button type="button" class="card">
+        <span class="ico" aria-hidden="true">⚡</span>
+        <span><b>Готовое действие</b><span>Свернуть · заметка · таймер 25 мин — одним тапом</span></span>
+      </button>
+
+      <div class="foot">
+        <span class="hotkey">Win+Shift+A</span>
+        <a href="#">Ещё действия…</a>
+      </div>
+    </aside>
+
+    <div class="tray"><span class="badge" title="Трей">✦</span> Aura</div>
+  </div>
+
+  <div class="spec">
+    <h3>Design Formal v1 — Aura</h3>
+    <ul>
+      <li><b>Сценарий:</b> общий хоткей → оверлей по foreground (не Excel-only).</li>
+      <li><b>Стиль:</b> Win11 mica/blur, радиус 14, accent blue, тёмная тема, Segoe UI Variable.</li>
+      <li><b>Индикатор «Смотрю»</b> всегда на экране в активной сессии + <b>Пауза</b> в 1 клик.</li>
+      <li><b>3 карточки</b> фиксированы в MVP; «Ещё действия…» — расширение без потолка.</li>
+      <li><b>OCR/скрин</b> — только после opt-in (не в этом дефолтном кадре).</li>
+      <li><b>Хоткей:</b> <code>Win+Shift+A</code> (заменяемо в настройках трея).</li>
+      <li>Анимации ≤180 ms; без неона. Размер панели ~340× авто.</li>
+    </ul>
+  </div>
+<script>
+  const look = document.getElementById('look');
+  const label = document.getElementById('lookLabel');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const overlay = document.getElementById('overlay');
+  let paused = false;
+  pauseBtn.onclick = () => {
+    paused = !paused;
+    look.classList.toggle('paused', paused);
+    label.textContent = paused ? 'Пауза' : 'Смотрю · Edge';
+    pauseBtn.textContent = paused ? 'Смотреть' : 'Пауза';
+    overlay.hidden = paused;
+  };
+  document.getElementById('closeBtn').onclick = () => { overlay.hidden = true; };
+</script>
+</body>
+</html>

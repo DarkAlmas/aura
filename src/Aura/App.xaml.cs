@@ -122,6 +122,9 @@ public partial class App : Application
         openItem.Text = $"Открыть ({_combo})";
         _hotkeyX = new HotkeyHost(0xA0B, HotkeyHost.UnderCursorCombos);
         if (_hotkeyX.Registered) { UnderCursorHotkey = _hotkeyX.Combo!; _hotkeyX.Pressed += () => Dispatcher.BeginInvoke(new Action(() => RememberUnderCursor(0))); }
+        // v0.8.6: global Pause toggle via RegisterHotKey (no hooks)
+        _hotkeyP = new HotkeyHost(0xA0C, new[] { (Native.MOD_WIN | Native.MOD_SHIFT, 0x50u, "Win+Shift+P"), (Native.MOD_WIN | Native.MOD_ALT, 0x50u, "Win+Alt+P") });
+        if (_hotkeyP.Registered) { _pauseItem!.Text = $"Пауза ({_hotkeyP.Combo})"; _hotkeyP.Pressed += () => Dispatcher.BeginInvoke(new Action(() => { TogglePause(); Toast("Aura", Settings.Paused ? "Пауза: ничего не смотрю и не жму." : "Снова смотрю."); RefreshLook(); })); }
         if (Array.Exists(e.Args, a => a == "--open")) RequestOverlay();
         _ = Actions.RunStartup();
     }
@@ -129,6 +132,7 @@ public partial class App : Application
     /// Cancel source for the in-flight «Делаю» action; Pause/Stop/Esc cancel it.
     // v0.8.3: Esc cancels «Делаю» from anywhere — RegisterHotKey(Esc) ONLY while an action runs (no hooks), released right after
     System.Threading.CancellationTokenSource? _actionCts; HotkeyHost? _esc;
+    HotkeyHost? _hotkeyP;
     public System.Threading.CancellationTokenSource? ActionCts
     {
         get => _actionCts;
@@ -291,6 +295,6 @@ public partial class App : Application
         }
         finally { RefreshLook(); }
     }
-    void Quit() { _quitting = true; _openEvent?.Set(); _hotkey?.Dispose(); _hotkeyX?.Dispose(); if (_tray != null) { _tray.Visible = false; _tray.Dispose(); } Shutdown(); }
-    protected override void OnExit(ExitEventArgs e) { _hotkey?.Dispose(); _hotkeyX?.Dispose(); _tray?.Dispose(); base.OnExit(e); }
+    void Quit() { _quitting = true; _openEvent?.Set(); _hotkey?.Dispose(); _hotkeyX?.Dispose(); _hotkeyP?.Dispose(); if (_tray != null) { _tray.Visible = false; _tray.Dispose(); } Shutdown(); }
+    protected override void OnExit(ExitEventArgs e) { _hotkey?.Dispose(); _hotkeyX?.Dispose(); _hotkeyP?.Dispose(); _tray?.Dispose(); base.OnExit(e); }
 }

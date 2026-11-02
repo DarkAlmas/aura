@@ -11,6 +11,7 @@ public partial class LookIndicator : Window
     {
         InitializeComponent();
         Loaded += (_, _) => { var wa = SystemParameters.WorkArea; Left = wa.Right - ActualWidth - 8; Top = wa.Top + 8; };
+        SizeChanged += (_, _) => { var wa = SystemParameters.WorkArea; Left = wa.Right - ActualWidth - 8; }; // v0.9.32: stays anchored top-right as the text grows
         var pulse = new DoubleAnimation(1, 0.35, System.TimeSpan.FromMilliseconds(800)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever };
         Dot.BeginAnimation(OpacityProperty, pulse);
     }
@@ -23,7 +24,7 @@ public partial class LookIndicator : Window
     }
     public void SetDoing(string what, bool stoppable = false)
     {
-        Label.Text = $"Делаю · {what}";
+        Label.Text = $"Делаю · {(what.Length > 40 ? what[..40] + "…" : what)}";
         Dot.Fill = Brushes.OrangeRed;
         StopBtn.Visibility = stoppable ? Visibility.Visible : Visibility.Collapsed;
     }

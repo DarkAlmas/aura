@@ -295,6 +295,7 @@ public partial class App : Application
         var key = title + "|" + text;
         if (key == _lastToast && (DateTime.Now - _lastToastAt).TotalSeconds < 5) return;
         _lastToast = key; _lastToastAt = DateTime.Now; _hintAt = DateTime.MinValue;
+        if (text.Length > 250) text = text[..250] + "…";
         _tray?.ShowBalloonTip(4000, title, text, Forms.ToolTipIcon.Info);
     }
     public static void OpenPath(string p) { try { Process.Start(new ProcessStartInfo(p) { UseShellExecute = true }); } catch { } }

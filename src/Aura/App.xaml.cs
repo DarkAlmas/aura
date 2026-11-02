@@ -90,13 +90,17 @@ public partial class App : Application
     /// «Учусь» — runtime only, visible (red dot). While ON, every Aura «Нажать» also remembers the button. No hooks.
     public bool Learning;
     /// Indicator stays visible while overlay is open, «Учусь» is ON, or «Действовать» is watching.
+    /// v0.5.9: visible «ищу…» on the indicator while OCR / picture matching runs (so capture is never invisible).
+    public string? Scanning;
+    sealed class ScanScope : IDisposable { public void Dispose() { App.Current.Scanning = null; App.Current.RefreshLook(); } }
+    public IDisposable Scan(string what) { Scanning = what; RefreshLook(); return new ScanScope(); }
     public void RefreshLook()
     {
         try
         {
             if (ActionCts != null) return; // «Делаю» owns the label
             Look.SetState(LastApp, Settings.Paused);
-            if (_overlay != null || Learning || Watcher.On) Look.Show(); else Look.Hide();
+            if (_overlay != null || Learning || Watcher.On || Scanning != null) Look.Show(); else Look.Hide();
         }
         catch { }
     }

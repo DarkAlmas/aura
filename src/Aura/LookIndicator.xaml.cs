@@ -17,7 +17,7 @@ public partial class LookIndicator : Window
     public void SetState(string app, bool paused)
     {
         var st = App.Current.Settings;
-        Label.Text = (paused ? "Пауза" : $"Смотрю · {app}") + (App.Current.Learning ? "  ●  Учусь" : "") + (!paused && Watcher.On ? "  ·  действую" : "");
+        Label.Text = (paused ? "Пауза" : $"Смотрю · {app}") + (App.Current.Learning ? "  ●  Учусь" : "") + (!paused && Watcher.On ? "  ·  действую" : "") + (App.Current.Scanning is string sc ? $"  ·  ищу: {sc}…" : "");
         Dot.Fill = App.Current.Learning ? Brushes.Red : paused ? (Brush)FindResource("Muted") : (Brush)FindResource("Accent");
         StopBtn.Visibility = Visibility.Collapsed;
     }
@@ -27,6 +27,6 @@ public partial class LookIndicator : Window
         Dot.Fill = Brushes.OrangeRed;
         StopBtn.Visibility = stoppable ? Visibility.Visible : Visibility.Collapsed;
     }
-    void Stop_Click(object s, RoutedEventArgs e) => App.Current.ActionCts?.Cancel();
+    void Stop_Click(object s, RoutedEventArgs e) => Actions.Stop(); // v0.5.9: Стоп also cancels the rest of a series
     void Pause_Click(object s, RoutedEventArgs e) => App.Current.TogglePause();
 }

@@ -128,13 +128,19 @@ public static class Buttons
         if (!st.ScreenCaptureOptIn || st.Paused) return null;
         if (b.Ocr && OcrFinder.Available)
         {
-            var w = await OcrFinder.FindNames(hwnd, new[] { b.Name });
-            if (w != null && w.Count > 0) return w[0];
+            using (App.Current.Scan($"текст «{b.Name}»"))
+            {
+                var w = await OcrFinder.FindNames(hwnd, new[] { b.Name });
+                if (w != null && w.Count > 0) return w[0];
+            }
         }
         if (b.HasTemplate)
         {
-            var r = await Task.Run(() => Templates.Match(b.Id, hwnd, b.Rect));
-            if (r != null) return new UiaFinder.Target(b.Name, "", "картинка", r.Value, null);
+            using (App.Current.Scan($"картинка «{b.Name}»"))
+            {
+                var r = await Task.Run(() => Templates.Match(b.Id, hwnd, b.Rect));
+                if (r != null) return new UiaFinder.Target(b.Name, "", "картинка", r.Value, null);
+            }
         }
         return null;
     }
@@ -186,14 +192,14 @@ public static class Watcher
                 var ocrB = rest.Where(b => b.Ocr).ToList();
                 if (ocrB.Count > 0 && OcrFinder.Available)
                 {
-                    var words = await OcrFinder.FindNames(fg.Hwnd, ocrB.Select(b => b.Name));
+                    List<UiaFinder.Target>? words; using (App.Current.Scan("текст")) words = await OcrFinder.FindNames(fg.Hwnd, ocrB.Select(b => b.Name));
                     if (words != null)
                         foreach (var b in ocrB) { hit = OcrFinder.Best(words, b.Name); if (hit != null) { lb = b; break; } }
                 }
                 if (hit == null)
                     foreach (var b in rest.Where(b => b.HasTemplate))
                     {
-                        var r = await Task.Run(() => Templates.Match(b.Id, fg.Hwnd, b.Rect));
+                        System.Windows.Rect? r; using (App.Current.Scan($"картинка «{b.Name}»")) r = await Task.Run(() => Templates.Match(b.Id, fg.Hwnd, b.Rect));
                         if (r != null) { hit = new UiaFinder.Target(b.Name, "", "картинка", r.Value, null); lb = b; break; }
                     }
             }

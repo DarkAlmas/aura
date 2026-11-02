@@ -56,7 +56,7 @@ public static class Actions
             default:
                 var act = it.Kind == "DOUBLECLICK" ? ClickAction.DoubleClick : it.Kind == "RIGHTCLICK" ? ClickAction.RightClick : learned?.Action ?? ClickAction.Click;
                 var how = await Buttons.DoWithCountdown(hit, act, fg.Hwnd, guardLeft: guardLeft);
-                return how == null ? "Остановлено." : $"Нажал «{hit.Label}» ({how}).";
+                return how == null ? "Остановлено." : how.StartsWith("не нажал") ? "Н" + how[1..] + "." : $"Нажал «{hit.Label}» ({how}).";
         }
     }
 

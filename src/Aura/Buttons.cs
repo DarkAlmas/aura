@@ -152,7 +152,7 @@ public static class Buttons
             try { hl?.Close(); hl = null; } catch { }
             var how = await Task.Run(() => UiaFinder.Click(hit, act));
             if (App.Current.Settings.ClickSound) System.Media.SystemSounds.Asterisk.Play();
-            App.Current.Toast("Aura", $"Нажал «{hit.Label}» ({how}).");
+            App.Current.Toast("Aura", how.StartsWith("не нажал") ? $"«{hit.Label}»: {how}." : $"Нажал «{hit.Label}» ({how})."); // v0.9.13
             return how;
         }
         catch (OperationCanceledException) { App.Current.Toast("Aura", "Остановлено."); return null; }

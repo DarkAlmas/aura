@@ -68,7 +68,7 @@ public partial class App : Application
         menu.Items.Add("Импорт правил…", null, (_, _) =>
         {
             var d = new Microsoft.Win32.OpenFileDialog { Filter = "JSON|*.json" };
-            if (d.ShowDialog() == true) try { Toast("Aura", $"Новых правил: {Rules.Import(d.FileName)} (только подсказки)."); } catch (Exception ex) { Toast("Aura", "Ошибка: " + ex.Message); }
+            if (d.ShowDialog() == true) try { Toast("Aura", $"Новых правил: {Rules.Import(d.FileName)} — выключены (⏸), включи нужные в «💡 Правила»."); } catch (Exception ex) { Toast("Aura", "Ошибка: " + ex.Message); }
         });
         menu.Items.Add("Импорт кнопок…", null, (_, _) =>
         {

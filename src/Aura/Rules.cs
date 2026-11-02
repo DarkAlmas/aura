@@ -45,11 +45,21 @@ public static class Rules
     public static void Remove(Rule r) { List().Remove(r); Save(); }
 
     public static int Export(string path) { File.WriteAllText(path, JsonSerializer.Serialize(List(), Opt)); return List().Count; }
+    // v0.7.3 import validation: ≤1 MB file, ≤200 rules, text ≤100 chars, no control chars, process = bare name (no path), stats reset,
+    // imported rules arrive DISABLED (⏸) so nothing new starts suggesting until you switch it on.
     public static int Import(string path)
     {
+        if (new FileInfo(path).Length > 1_000_000) throw new InvalidDataException("файл больше 1 МБ");
         var src = JsonSerializer.Deserialize<List<Rule>>(File.ReadAllText(path)) ?? new(); int n = 0;
-        foreach (var r in src.Where(r => (r.When ?? "").Trim().Length >= 2 && (r.Suggest ?? "").Trim().Length > 0 && r.Suggest.Trim().Length > 0))
+        static string Clean(string? t) => new string((t ?? "").Where(c => !char.IsControl(c)).ToArray()).Trim();
+        foreach (var raw in src.Take(200))
+        {
+            var r = new Rule { When = Clean(raw.When), Suggest = Clean(raw.Suggest), Process = Clean(raw.Process), Enabled = false };
+            if (r.When.Length < 2 || r.When.Length > 100 || r.Suggest.Length == 0 || r.Suggest.Length > 100) continue;
+            if (r.Process.Length > 64 || r.Process.IndexOfAny(new[] { '\\', '/', ':', '*', '?', '"', '<', '>', '|' }) >= 0) continue;
+            if (List().Count >= 500) break;
             if (!List().Any(x => x.When == r.When && x.Suggest == r.Suggest && x.Process == r.Process)) { List().Add(r); n++; }
+        }
         Save(); Sync(); return n;
     }
     public static IEnumerable<Rule> For(string process) => List().Where(r => r.Enabled && r.When.Length > 0 && r.Suggest.Length > 0 &&

@@ -34,6 +34,7 @@ public sealed class Settings
     /// v0.5.2 profiles: apps where «действовать» stays silent even when ON.
     /// v0.5.7: background rule hints (toast only, never clicks). OFF by default.
     public bool RulesOptIn { get; set; } = false;
+    public bool RulesQuiet { get; set; } = false; // v0.6.3: hint = short sound + tray tooltip, no balloon
     public List<string> ActDisabledApps { get; set; } = new();
     public bool ActDisabled(string p) => ActDisabledApps.Exists(a => string.Equals(a, p, StringComparison.OrdinalIgnoreCase));
     /// «ИИ (сеть)» — the ONLY switch that allows network. OFF by default.

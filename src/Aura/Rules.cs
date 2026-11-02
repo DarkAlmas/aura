@@ -74,7 +74,8 @@ public static class Rules
                 if (_cool.TryGetValue(key, out var u) && u > DateTime.Now) continue;
                 _cool[key] = DateTime.Now.AddSeconds(60);
                 App.Current.LastSuggestion = (r, fg);
-                App.Current.Toast("Aura · подсказка", $"Вижу «{r.When}» в {fg.Process}. Предлагаю нажать «{r.Suggest}» — открой Aura ({App.Current.HotkeyName}) и нажми ▶. Сам не жму.");
+                if (App.Current.Settings.RulesQuiet) { System.Media.SystemSounds.Asterisk.Play(); App.Current.TrayHint($"Подсказка: «{r.Suggest}»"); }
+                else App.Current.Toast("Aura · подсказка", $"Вижу «{r.When}» в {fg.Process}. Предлагаю нажать «{r.Suggest}» — открой Aura ({App.Current.HotkeyName}) и нажми ▶. Сам не жму.");
                 break;
             }
         }

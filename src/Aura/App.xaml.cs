@@ -49,6 +49,9 @@ public partial class App : Application
         menu.Items.Add(_pauseItem); menu.Items.Add(_ocrItem); menu.Items.Add(_actItem); menu.Items.Add(_aiItem);
         menu.Items.Add("Запомнить под курсором (через 3 с)", null, (_, _) => RememberUnderCursor(3));
         menu.Items.Add("⏹ Стоп всё (действие/серия)", null, (_, _) => Actions.Stop());
+        var quiet = new Forms.ToolStripMenuItem("Подсказки тихо (звук, без всплывашек)") { CheckOnClick = true, Checked = Settings.RulesQuiet };
+        quiet.CheckedChanged += (_, _) => { Settings.RulesQuiet = quiet.Checked; Settings.Save(); };
+        menu.Items.Add(quiet);
         menu.Items.Add("Экспорт кнопок…", null, (_, _) =>
         {
             var d = new Microsoft.Win32.SaveFileDialog { FileName = "aura-buttons.json", Filter = "JSON|*.json" };
@@ -153,6 +156,7 @@ public partial class App : Application
         if (_actItem != null) _actItem.Checked = Settings.ActOptIn;
         if (_aiItem != null) _aiItem.Checked = Settings.AiOptIn;
     }
+    public void TrayHint(string t) { if (_tray != null) _tray.Text = ("Aura · " + t).Length > 63 ? ("Aura · " + t)[..63] : "Aura · " + t; }
     public void Toast(string title, string text) => _tray?.ShowBalloonTip(4000, title, text, Forms.ToolTipIcon.Info);
     public static void OpenPath(string p) { try { Process.Start(new ProcessStartInfo(p) { UseShellExecute = true }); } catch { } }
     /// v0.5.0 «Под курсором» (no hooks): read the control under the mouse ONCE, on hotkey/button press → remember it.

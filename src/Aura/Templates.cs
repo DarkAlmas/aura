@@ -26,7 +26,7 @@ public static class Templates
             int x = (int)(r.X + r.Width / 2 - w / 2.0), y = (int)(r.Y + r.Height / 2 - h / 2.0);
             Directory.CreateDirectory(Dir);
             using var bmp = new Bitmap(w, h, PixelFormat.Format32bppArgb);
-            using (var g = Graphics.FromImage(bmp)) g.CopyFromScreen(x, y, 0, 0, new Size(w, h));
+            using (var g = Graphics.FromImage(bmp)) if (!Native.SafeCapture(g, x, y, w, h)) return false;
             bmp.Save(PathOf(id), ImageFormat.Png);
             return true;
         }
@@ -77,7 +77,7 @@ public static class Templates
                 int cx = (int)(hr.X + hr.Width / 2), cy = (int)(hr.Y + hr.Height / 2), M = 24;
                 int L = cx - t0.Width / 2 - M, T = cy - t0.Height / 2 - M, w = t0.Width + 2 * M, h = t0.Height + 2 * M;
                 using var sh = new Bitmap(w, h, PixelFormat.Format32bppArgb);
-                using (var g = Graphics.FromImage(sh)) g.CopyFromScreen(L, T, 0, 0, new Size(w, h));
+                using (var g = Graphics.FromImage(sh)) Native.SafeCapture(g, L, T, w, h);
                 var iF0 = Gray(sh, out int iw0, out _, 1); var tF0 = Gray(t0, out int tw0, out int th0, 1);
                 long b0 = long.MaxValue; int x0 = 0, y0 = 0;
                 for (int y = 0; y <= h - th0; y++) for (int x = 0; x <= w - tw0; x++) { var v = Sad(iF0, iw0, tF0, tw0, th0, x, y, b0); if (v < b0) { b0 = v; x0 = x; y0 = y; } }
@@ -90,7 +90,7 @@ public static class Templates
             using (var g = Graphics.FromImage(tpl)) g.DrawImage(tb, 0, 0, tb.Width, tb.Height);
             if (W < tpl.Width || H < tpl.Height) return null;
             using var shot = new Bitmap(W, H, PixelFormat.Format32bppArgb);
-            using (var g = Graphics.FromImage(shot)) g.CopyFromScreen(wr.L, wr.T, 0, 0, new Size(W, H));
+            using (var g = Graphics.FromImage(shot)) Native.SafeCapture(g, wr.L, wr.T, W, H);
             // coarse pass at 1/2
             const int K = 4; var ic = Gray(shot, out int icw, out int ich, K); var tc = Gray(tpl, out int tcw, out int tch, K);
             long best = long.MaxValue; int bx = 0, by = 0;

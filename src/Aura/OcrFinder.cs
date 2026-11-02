@@ -59,7 +59,7 @@ public static class OcrFinder
     static async Task<(OcrResult, double)> Recognize(OcrEngine engine, int L, int T, int w, int h)
     {
         using var bmp = new Bitmap(w, h, PixelFormat.Format32bppPArgb);
-        using (var g = Graphics.FromImage(bmp)) g.CopyFromScreen(L, T, 0, 0, new Size(w, h));
+        using (var g = Graphics.FromImage(bmp)) Native.SafeCapture(g, L, T, w, h);
         double S = Math.Min(2.0, (double)OcrEngine.MaxImageDimension / Math.Max(w, h)); if (S < 1) S = 1;
         int sw = (int)(w * S), shh = (int)(h * S);
         using var big = new Bitmap(sw, shh, PixelFormat.Format32bppPArgb);

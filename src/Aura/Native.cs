@@ -56,6 +56,22 @@ public static class Native
         } }
         finally { if (had) { System.Threading.Thread.Sleep(40); SetCursorPos(back.X, back.Y); } } // v0.9.12: mouse returns where the user left it
     }
+    /// v0.9.14: screen capture never reads pixels of an excluded app (or Aura) overlapping the rect — 4×4 grid probe; if hit, the bitmap stays black.
+    public static bool SafeCapture(System.Drawing.Graphics g, int L, int T, int w, int h)
+    {
+        try
+        {
+            var st = App.Current.Settings;
+            for (int i = 0; i < 4; i++) for (int j = 0; j < 4; j++)
+            {
+                var wi = WindowAt(new POINT { X = L + (int)(w * (i + 0.5) / 4), Y = T + (int)(h * (j + 0.5) / 4) });
+                if (wi != null && st.IsExcluded(wi.Process)) { g.Clear(System.Drawing.Color.Black); return false; }
+            }
+        }
+        catch { }
+        g.CopyFromScreen(L, T, 0, 0, new System.Drawing.Size(w, h));
+        return true;
+    }
     /// Root window + process under a screen point (for «Под курсором»).
     public static WindowInfo? WindowAt(POINT p)
     {

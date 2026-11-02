@@ -92,6 +92,7 @@ public static class Actions
     }
     public static string Launch(string path, bool fromAi = false)
     {
+        if (App.Current.Settings.Paused) return "Пауза — ничего не запускаю."; // v0.9.44
         var bad = LaunchProblem(path, fromAi);
         if (bad != null) { App.Current.Toast("Aura", bad); return bad; }
         path = Environment.ExpandEnvironmentVariables(path.Trim().Trim('"')); // v0.9.21: expanded exactly once — the checked path is the launched path

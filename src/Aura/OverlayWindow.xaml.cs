@@ -175,9 +175,14 @@ public partial class OverlayWindow : Window
         LearnBadge.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
         LearnBtnText.Text = on ? "■ Хватит учиться" : "● Учусь";
     }
+    void OnlyAppChk_Click(object s, RoutedEventArgs e) => LoadButtons();
     void LoadButtons()
     {
-        var l = Buttons.List().ToList();
+        // v0.6.0 profiles: current app's buttons first; «только это приложение» filter.
+        var all = Buttons.List();
+        bool Mine(LearnedButton b) => _fg != null && string.Equals(b.Process, _fg.Process, StringComparison.OrdinalIgnoreCase);
+        var l = (OnlyAppChk?.IsChecked == true && _fg != null ? all.Where(Mine) : all).OrderByDescending(Mine).ThenBy(b => b.Process).ThenBy(b => b.Name).ToList();
+        if (OnlyAppChk != null) OnlyAppChk.Content = _fg == null ? "только это приложение" : $"только {_fg.Process} ({all.Count(Mine)} из {all.Count})";
         BtnList.ItemsSource = l;
         BtnList.Visibility = BtnBar.Visibility = l.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
     }

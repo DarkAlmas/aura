@@ -28,7 +28,7 @@ public static class Ai
         {
             "CLICK" => $"Нажать «{Arg}»", "DOUBLECLICK" => $"Двойной клик «{Arg}»", "RIGHTCLICK" => $"ПКМ «{Arg}»",
             "FIND" => $"Найти «{Arg}»", "REMEMBER" => $"Запомнить «{Arg}»", "LAUNCH" => (Actions.LaunchProblem(Arg, true) is null ? "Запустить: " : "⛔ откажу — Запустить: ") + Arg, "OPEN" => (global::System.Uri.TryCreate(Arg.Trim(), global::System.UriKind.Absolute, out var u) && (u.Scheme == "http" || u.Scheme == "https") ? "Открыть: " : "⛔ откажу — Открыть: ") + Arg,
-            "WAIT" => $"Подождать {Arg} с", _ => $"{Kind} {Arg}"
+            "WAIT" => $"Подождать {Arg} с", "RULE" => $"💡 Добавить правило: {Arg}", _ => $"{Kind} {Arg}"
         };
     }
 
@@ -40,9 +40,10 @@ DOUBLECLICK: <имя>
 RIGHTCLICK: <имя>
 FIND: <текст кнопки>
 REMEMBER: <имя кнопки>
-LAUNCH: <путь к .exe или имя программы, напр. notepad>
+LAUNCH: <полный путь к .exe — только из списка startup_programs, другие Aura отклонит>
 OPEN: <https://url>
 WAIT: <секунды 1-10>
+RULE: <текст, который появляется в окне> => <имя кнопки, которую тогда предложить>   (правило только подсказывает, само не нажимает)
 Используй имена из списка выученных кнопок или из текста окна. Не выдумывай пути. Никаких других форматов команд.";
 
     public static async Task<(string Text, List<Intent> Intents)> Ask(string request, Native.WindowInfo? fg, string? windowText)
@@ -54,6 +55,8 @@ WAIT: <секунды 1-10>
         {
             ["app"] = fg?.Process, ["title"] = fg == null || st.IsExcluded(fg.Process) ? null : fg.Title,
             ["learned_buttons"] = learned,
+            ["startup_programs"] = st.StartupActions.Where(a => a.Kind == "LaunchExe").Select(a => a.Arg).ToList(),
+            ["rules"] = Rules.List().Select(r => r.ToString()).Take(30).ToList(),
             ["all_learned"] = Buttons.List().Select(b => b.Process + ": " + b.Name).Distinct().Take(80).ToList(),
         };
         if (!string.IsNullOrWhiteSpace(windowText)) ctx["window_text"] = windowText!.Length > 3000 ? windowText[..3000] : windowText;
@@ -86,7 +89,7 @@ WAIT: <секунды 1-10>
         catch (Exception ex) { return ("ИИ недоступен: " + ex.Message, new()); }
     }
 
-    static readonly Regex Rx = new(@"^\s*[-*]?\s*`?(CLICK|DOUBLECLICK|RIGHTCLICK|FIND|REMEMBER|LAUNCH|OPEN|WAIT)\s*:\s*(.+?)`?\s*$", RegexOptions.IgnoreCase);
+    static readonly Regex Rx = new(@"^\s*[-*]?\s*`?(CLICK|DOUBLECLICK|RIGHTCLICK|FIND|REMEMBER|LAUNCH|OPEN|WAIT|RULE)\s*:\s*(.+?)`?\s*$", RegexOptions.IgnoreCase);
     public static List<Intent> Parse(string text) =>
         text.Split('\n').Select(l => Rx.Match(l)).Where(m => m.Success)
             .Select(m => new Intent(m.Groups[1].Value.ToUpperInvariant(), m.Groups[2].Value.Trim().Trim('«', '»', '"', '\'')))

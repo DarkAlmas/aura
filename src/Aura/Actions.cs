@@ -29,6 +29,13 @@ public static class Actions
         {
             case "LAUNCH": return Launch(it.Arg, fromAi);
             case "OPEN": return Open(it.Arg);
+            case "RULE":
+                {
+                    var parts = it.Arg.Split(new[] { "=>", "→", "->" }, 2, StringSplitOptions.TrimEntries);
+                    if (parts.Length != 2 || parts[0].Length == 0 || parts[1].Length == 0) return "Правило не понял (нужно «вижу => нажать»).";
+                    Rules.Add(new Rule { When = parts[0], Suggest = parts[1], Process = fg?.Process ?? "" }); Rules.Sync();
+                    return $"Добавил правило: вижу «{parts[0]}» → предложить «{parts[1]}» (только подсказка).";
+                }
             case "WAIT": if (int.TryParse(it.Arg, out var sec)) await Task.Delay(Math.Clamp(sec, 1, 30) * 1000); return "Подождал.";
         }
         if (fg == null || !Native.IsWindow(fg.Hwnd)) return "Нет окна для действия.";

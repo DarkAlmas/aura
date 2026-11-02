@@ -46,6 +46,7 @@
             <Button x:Name="LearnBtn" Style="{StaticResource Ghost}" Click="Learn_Click"><TextBlock x:Name="LearnBtnText" Text="● Учусь" Foreground="{StaticResource Accent}"/></Button>
             <CheckBox x:Name="ActChk" Margin="8,4,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="действовать (сам жму выученные)" ToolTip="Выкл. по умолчанию. Каждые 2 с читаю UIA активного окна; совпадение → «Делаю» 1 с со Стоп/Esc/Пауза → клик." Checked="ActChk_Changed" Unchecked="ActChk_Changed"/>
           </WrapPanel>
+          <CheckBox x:Name="OnlyAppChk" Margin="36,4,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="только это приложение" Click="OnlyAppChk_Click"/>
           <CheckBox x:Name="AppOffChk" Margin="36,4,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="не действовать в этом приложении" Click="AppOffChk_Click"/>
           <ListBox x:Name="BtnList" Margin="36,6,0,0" MaxHeight="140" FontSize="12" Visibility="Collapsed"/>
           <WrapPanel x:Name="BtnBar" Margin="36,6,0,0" Visibility="Collapsed">

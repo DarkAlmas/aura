@@ -209,7 +209,9 @@ public static class Watcher
             }
             if (hit == null || lb == null) return;
             _cool[fg.Hwnd + "|" + lb] = DateTime.Now.AddSeconds(15);
-            if (!App.Current.Settings.ActOptIn) return;
+            if (_cool.Count > 300) foreach (var k in _cool.Where(c => c.Value < DateTime.Now).Select(c => c.Key).ToList()) _cool.Remove(k); // v0.9.1: bounded
+            // v0.9.1: the scan took time — re-check pause / Стоп / exclusions / foreground right before the countdown
+            if (!st.ActOptIn || st.Paused || App.Current.ActionCts != null || st.IsExcluded(fg.Process) || st.ActDisabled(fg.Process) || Native.Foreground()?.Hwnd != fg.Hwnd) return;
             await Buttons.DoWithCountdown(hit, lb.Action, fg.Hwnd, requireForeground: true);
         }
         catch { }

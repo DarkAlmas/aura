@@ -88,6 +88,7 @@ public static class Rules
         try
         {
             var uia = await Task.Run(() => UiaFinder.Enumerate(fg.Hwnd));
+            if (st.Paused || !st.RulesOptIn || App.Current.ActionCts != null || DateTime.Now < App.Current.RulesSnoozeUntil || Native.Foreground()?.Hwnd != fg.Hwnd) return; // v0.9.1: state may change during the read
             foreach (var r in Hits(fg.Process, uia))
             {
                 var key = fg.Hwnd + "|" + r.When + "|" + r.Suggest;

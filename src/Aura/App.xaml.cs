@@ -209,7 +209,9 @@ public partial class App : Application
         var txt = $"Aura {Version}\n\n" +
             $"Пауза: {On(st.Paused)}\n" +
             $"Смотрит экран (OCR, только в памяти): {On(st.ScreenCaptureOptIn)}\n" +
-            $"Действует сама (через «Делаю» 1 с + Стоп): {On(st.ActOptIn)}\n" +
+            $"«Действовать» по запомненным кнопкам (через «Делаю» 1 с + Стоп): {On(st.ActOptIn)}\n" +
+            $"Авто после «Найти» с одним совпадением: {On(st.AutoClickOptIn)}\n" +
+            $"Запомнено кнопок: {Buttons.List().Count} (включено: {Buttons.List().Count(b => b.Enabled)}), правил: {Rules.List().Count}\n" +
             $"Подсказки по правилам: {On(st.RulesOptIn)}{(DateTime.Now < RulesSnoozeUntil ? $" (отложены до {RulesSnoozeUntil:HH:mm})" : "")}\n" +
             $"ИИ (сеть): {On(st.AiOptIn)}{(st.AiOptIn ? $" → {st.AiBaseUrl}, текст окна: {On(st.AiAttachText)}" : " — в сеть ничего не уходит")}\n" +
             $"Запуск шагов при старте: {On(st.StartupOptIn)}\n" +

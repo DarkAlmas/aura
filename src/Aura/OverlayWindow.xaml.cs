@@ -15,7 +15,7 @@ public partial class OverlayWindow : Window
 
     public OverlayWindow(Native.WindowInfo? fg)
     {
-        InitializeComponent();
+        InitializeComponent(); Title = $"Aura {App.Version}";
         HotkeyHint.Text = App.Current.HotkeyName;
         _fg = fg;
         Ctx.Text = "AURA · " + (fg?.Process ?? "нет окна").ToUpperInvariant();

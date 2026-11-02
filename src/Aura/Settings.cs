@@ -123,11 +123,13 @@ public sealed class Settings
     void Normalize()
     {
         static List<string> L(List<string>? l, int max) => (l ?? new()).Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Take(max).ToList();
-        ExcludedApps = L(ExcludedApps, 200); AutoAllowed = L(AutoAllowed, 200); ActDisabledApps = L(ActDisabledApps, 200);
+        ExcludedApps = L(ExcludedApps?.Select(Bare).ToList(), 200); AutoAllowed = L(AutoAllowed, 200); ActDisabledApps = L(ActDisabledApps, 200);
         StartupActions = (StartupActions ?? new()).Where(a => a != null && !string.IsNullOrWhiteSpace(a.Kind)).Take(20).ToList();
     }
     public bool IsExcluded(string process) =>
-        AlwaysExcluded.Contains(process ?? "") || ExcludedApps.Exists(a => string.Equals(a, process, StringComparison.OrdinalIgnoreCase));
+        AlwaysExcluded.Contains(process ?? "") || ExcludedApps.Exists(a => string.Equals(Bare(a), process, StringComparison.OrdinalIgnoreCase));
+    /// v0.9.41: «chrome.exe» or a full path in the exclusion list means the same as «chrome».
+    public static string Bare(string a) { a = (a ?? "").Trim().Trim('"'); try { a = Path.GetFileName(a); } catch { } return a.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? a[..^4] : a; }
     /// v0.9.35: credential/lock screens and common password managers are ALWAYS excluded (not removable, applies to old settings too).
     public static readonly HashSet<string> AlwaysExcluded = new(StringComparer.OrdinalIgnoreCase)
     { "CredentialUIBroker", "consent", "LogonUI", "LockApp", "KeePass", "KeePassXC", "1Password", "Bitwarden", "Dashlane", "Enpass", "LastPass", "RoboForm", "NordPass" };

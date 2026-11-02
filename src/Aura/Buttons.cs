@@ -200,6 +200,8 @@ public static class Watcher
     static DispatcherTimer? _t;
     static bool _busy;
     static readonly Dictionary<string, DateTime> _cool = new();
+    static readonly Queue<DateTime> _recent = new();
+    static DateTime _brakeUntil;
 
     public static void Sync()
     {
@@ -256,6 +258,14 @@ public static class Watcher
             if (_cool.Count > 300) foreach (var k in _cool.Where(c => c.Value < DateTime.Now).Select(c => c.Key).ToList()) _cool.Remove(k); // v0.9.1: bounded
             // v0.9.1: the scan took time — re-check pause / Стоп / exclusions / foreground right before the countdown
             if (!st.ActOptIn || st.Paused || App.Current.ActionCts != null || st.IsExcluded(fg.Process) || st.ActDisabled(fg.Process) || Native.Foreground()?.Hwnd != fg.Hwnd) return;
+            if (DateTime.Now < _brakeUntil) return;
+            _recent.Enqueue(DateTime.Now); while (_recent.Count > 0 && DateTime.Now - _recent.Peek() > TimeSpan.FromMinutes(1)) _recent.Dequeue();
+            if (_recent.Count > 10) // v0.9.40: runaway brake — >10 auto-presses a minute looks like a loop
+            {
+                _recent.Clear(); _brakeUntil = DateTime.Now.AddMinutes(5);
+                App.Current.Toast("Aura · тормоз", "Больше 10 автонажатий за минуту — похоже на цикл. Автонажатия на 5 минут выключены.");
+                return;
+            }
             await Buttons.DoWithCountdown(hit, lb.Action, fg.Hwnd, requireForeground: true);
         }
         catch { }

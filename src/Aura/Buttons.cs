@@ -73,6 +73,7 @@ public static class Buttons
             X = t.Bounds.X, Y = t.Bounds.Y, W = t.Bounds.Width, H = t.Bounds.Height, Action = act };
         var l = List();
         var old = l.FirstOrDefault(x => x.Same(b));
+        if (old == null && (l.Count >= 500 || b.Name.Length > 80)) { App.Current.Toast("Aura", l.Count >= 500 ? "Уже 500 кнопок — забудьте лишние." : "Слишком длинное имя кнопки — не запоминаю."); return null; } // v0.9.17: bounded
         if (old != null) { old.Action = act; b = old; } else l.Add(b);
         // v0.9.8 (Formal INFO): OCR hits/buttons NEVER get an image; a flag without a file on disk is re-created (or cleared)
         if (ocr || b.Ocr) { if (b.HasTemplate || Templates.Exists(b.Id)) Templates.Delete(b.Id); b.HasTemplate = false; }

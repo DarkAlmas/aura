@@ -366,6 +366,7 @@ public partial class OverlayWindow : Window
             var hits = Rules.Hits(_fg.Process, uia);
             if (hits.Count == 0) return;
             RuleHits.ItemsSource = hits; RuleHits.SelectedIndex = 0;
+            if (App.Current.LastSuggestion is { } ls && ls.Fg.Hwnd == _fg.Hwnd && hits.Contains(ls.Rule)) RuleHits.SelectedItem = ls.Rule; // v0.6.7: preselect the one from the toast
             RuleHits.Visibility = RuleHitRun.Visibility = Visibility.Visible; RuleExp.IsExpanded = true;
         }
         catch { }
@@ -375,6 +376,7 @@ public partial class OverlayWindow : Window
         if (RuleHits.SelectedItem is not Rule r || _fg == null || _acting) return;
         _acting = true; Actions.StopAll = false;
         try { var lb = Buttons.ByName(r.Suggest, _fg.Process); var kind = lb?.Action == ClickAction.DoubleClick ? "DOUBLECLICK" : lb?.Action == ClickAction.RightClick ? "RIGHTCLICK" : "CLICK";
+              r.Used++; try { Rules.Save(); } catch { } LoadRules();
               LearnInfo.Text = await Actions.Run(new Ai.Intent(kind, r.Suggest), _fg, guardLeft: true); }
         finally { _acting = false; }
     }

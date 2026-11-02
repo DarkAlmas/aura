@@ -16,7 +16,10 @@ public sealed class Rule
     public string When { get; set; } = "";         // text of a visible control (UIA Name, contains, case-insensitive)
     public string Suggest { get; set; } = "";      // name of a button to press (learned or visible)
     public bool Enabled { get; set; } = true;
-    public override string ToString() => $"{(Enabled ? "" : "⏸ ")}Вижу «{When}» → предложить «{Suggest}»{(Process.Length > 0 ? " · " + Process : " · везде")}";
+    public int Shown { get; set; }   // v0.6.7 stats: how often suggested / how often the user pressed ▶
+    public int Used { get; set; }
+    string Stat => Shown + Used == 0 ? "" : $" · {Used}/{Shown}{(Shown >= 5 && Used == 0 ? " (не нужна?)" : "")}";
+    public override string ToString() => $"{(Enabled ? "" : "⏸ ")}Вижу «{When}» → предложить «{Suggest}»{(Process.Length > 0 ? " · " + Process : " · везде")}{Stat}";
 }
 
 public static class Rules
@@ -82,6 +85,7 @@ public static class Rules
                 if (_cool.Count > 200) foreach (var k in _cool.Where(c => c.Value < DateTime.Now).Select(c => c.Key).ToList()) _cool.Remove(k);
                 _cool[key] = DateTime.Now.AddSeconds(60);
                 App.Current.LastSuggestion = (r, fg);
+                r.Shown++; try { Save(); } catch { }
                 if (App.Current.Settings.RulesQuiet) { System.Media.SystemSounds.Asterisk.Play(); App.Current.TrayHint($"Подсказка: «{r.Suggest}»"); }
                 else App.Current.Toast("Aura · подсказка", $"Вижу «{r.When}» в {fg.Process}. Предлагаю нажать «{r.Suggest}» — открой Aura ({App.Current.HotkeyName}) и нажми ▶. Сам не жму.");
                 break;

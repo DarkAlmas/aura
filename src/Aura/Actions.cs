@@ -21,7 +21,7 @@ public sealed class StartupAction
 /// Executes one confirmed intent (from AI or «При старте»/«Серия»). Every click goes through Buttons.DoWithCountdown («Делаю» 1 с + Стоп).
 public static class Actions
 {
-    public static async Task<string> Run(Ai.Intent it, Native.WindowInfo? fg)
+    public static async Task<string> Run(Ai.Intent it, Native.WindowInfo? fg, bool guardLeft = false)
     {
         var st = App.Current.Settings;
         if (st.Paused) return "Пауза — не выполняю.";
@@ -44,7 +44,7 @@ public static class Actions
                 return b == null ? "Не запомнил." : $"Запомнил «{b.Label}».";
             default:
                 var act = it.Kind == "DOUBLECLICK" ? ClickAction.DoubleClick : it.Kind == "RIGHTCLICK" ? ClickAction.RightClick : learned?.Action ?? ClickAction.Click;
-                var how = await Buttons.DoWithCountdown(hit, act, fg.Hwnd);
+                var how = await Buttons.DoWithCountdown(hit, act, fg.Hwnd, guardLeft: guardLeft);
                 return how == null ? "Остановлено." : $"Нажал «{hit.Label}» ({how}).";
         }
     }
@@ -95,14 +95,20 @@ public static class Actions
     }
 
     /// «Серия»: run selected learned buttons one after another in the current foreground window, each with «Делаю».
-    public static async Task RunSeries(IEnumerable<LearnedButton> list, Native.WindowInfo fg)
+    /// v0.5.3: keeps running if the overlay is closed; always ends with a tray toast «Серия: k из n» (stopped/left/paused are explicit).
+    public static async Task<string> RunSeries(IEnumerable<LearnedButton> list, Native.WindowInfo fg)
     {
-        foreach (var b in list)
+        var l = list.ToList(); int done = 0; string why = "";
+        foreach (var b in l)
         {
-            if (App.Current.Settings.Paused) return;
-            var r = await Run(new Ai.Intent(b.Action == ClickAction.DoubleClick ? "DOUBLECLICK" : b.Action == ClickAction.RightClick ? "RIGHTCLICK" : "CLICK", b.Name), fg);
-            if (r.StartsWith("Остановлено")) return;
+            if (App.Current.Settings.Paused) { why = " — пауза"; break; }
+            if (!Native.IsWindow(fg.Hwnd)) { why = " — окно закрыто"; break; }
+            var r = await Run(new Ai.Intent(b.Action == ClickAction.DoubleClick ? "DOUBLECLICK" : b.Action == ClickAction.RightClick ? "RIGHTCLICK" : "CLICK", b.Name), fg, guardLeft: true);
+            if (r.StartsWith("Остановлено")) { why = " — остановлено/ушёл из окна"; break; }
+            if (r.StartsWith("Нажал")) done++;
             await Task.Delay(Math.Clamp(App.Current.Settings.StepDelayMs, 200, 10000));
         }
+        var msg = $"Серия: {done} из {l.Count}{why}.";
+        App.Current.Toast("Aura · Серия", msg); return msg;
     }
 }

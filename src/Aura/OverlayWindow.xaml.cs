@@ -237,7 +237,7 @@ public partial class OverlayWindow : Window
         var l = Buttons.List().Where(b => string.Equals(b.Process, _fg.Process, StringComparison.OrdinalIgnoreCase)).ToList();
         if (l.Count == 0) { LearnInfo.Text = $"Для {_fg.Process} нет выученных кнопок."; return; }
         _acting = true; LearnInfo.Text = $"Серия: {l.Count} шт., каждая с «Делаю» 1 с.";
-        try { await Actions.RunSeries(l, _fg); LearnInfo.Text = "Серия завершена."; } finally { _acting = false; }
+        try { var m = await Actions.RunSeries(l, _fg); if (!_closing) LearnInfo.Text = m; } finally { _acting = false; }
     }
     void BtnStartup_Click(object s, RoutedEventArgs e)
     {
@@ -288,14 +288,14 @@ public partial class OverlayWindow : Window
     async void RunIntents_Click(object s, RoutedEventArgs e)
     {
         var sel = IntentList.SelectedItems.Cast<Ai.Intent>().ToList(); if (sel.Count == 0) return;
-        if (_fg == null) { AiReply.Text = "Нет активного окна."; }
+        if (_fg == null && sel.Any(i => i.Kind is not ("LAUNCH" or "OPEN" or "WAIT"))) { AiReply.Text = "Нет активного окна — клики не выполняю."; return; }
         _acting = true; var log = new List<string>();
         try
         {
             foreach (var it in (_intents ?? new()).Where(sel.Contains))
             {
-                var r = await Actions.Run(it, _fg); log.Add(r); AiReply.Text = string.Join("\n", log);
-                if (r.StartsWith("Остановлено") || App.Current.Settings.Paused) break;
+                var r = await Actions.Run(it, _fg, guardLeft: true); log.Add(r); AiReply.Text = string.Join("\n", log);
+                if (r.StartsWith("Остановлено") || App.Current.Settings.Paused) { log.Add("Прервано — остальные пункты не выполнены."); AiReply.Text = string.Join("\n", log); break; }
                 await Task.Delay(Math.Clamp(App.Current.Settings.StepDelayMs, 200, 10000));
             }
         }

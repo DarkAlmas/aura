@@ -84,7 +84,7 @@ public static class Buttons
         string.Equals(b.Name.Trim(), name.Trim(), StringComparison.CurrentCultureIgnoreCase) && (process == null || string.Equals(b.Process, process, StringComparison.OrdinalIgnoreCase)));
 
     /// v0.5.0 shared «Делаю» 1 s + Стоп → act. Used by Watcher, startup actions and AI intents. Returns how, or null if stopped/aborted.
-    public static async Task<string?> DoWithCountdown(UiaFinder.Target hit, ClickAction act, IntPtr hwnd, bool requireForeground = false)
+    public static async Task<string?> DoWithCountdown(UiaFinder.Target hit, ClickAction act, IntPtr hwnd, bool requireForeground = false, bool guardLeft = false)
     {
         var st = App.Current.Settings;
         if (st.Paused || App.Current.ActionCts != null) return null;
@@ -94,6 +94,8 @@ public static class Buttons
             App.Current.Look.SetDoing(hit.Label + (act == ClickAction.DoubleClick ? " ×2" : act == ClickAction.RightClick ? " (ПКМ)" : ""), stoppable: true); App.Current.Look.Show();
             await Task.Delay(1000, cts.Token);
             if (App.Current.Settings.Paused) throw new OperationCanceledException();
+            if (guardLeft && hwnd != IntPtr.Zero && !Native.ForegroundIsTargetOrAura(hwnd))
+            { App.Current.Toast("Aura", $"Ты ушёл из окна — «{hit.Label}» не нажимаю."); return null; }
             if (hwnd != IntPtr.Zero && Native.GetForegroundWindow() != hwnd) { if (requireForeground) return null; Native.SetForegroundWindow(hwnd); await Task.Delay(150, cts.Token); }
             var how = await Task.Run(() => UiaFinder.Click(hit, act));
             if (App.Current.Settings.ClickSound) System.Media.SystemSounds.Asterisk.Play();

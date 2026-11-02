@@ -134,7 +134,7 @@ public partial class App : Application
     {
         if (Settings.Paused) { Toast("Aura", "Пауза — не учусь."); return; }
         if (delaySec > 0) { Toast("Aura · Под курсором", $"Наведи мышь на кнопку — запомню через {delaySec} с."); await System.Threading.Tasks.Task.Delay(delaySec * 1000); }
-        if (!Native.GetCursorPos(out var p)) return;
+        if (!Native.CursorPhysical(out var p)) return;
         var w = Native.WindowAt(p);
         if (w == null || w.Pid == Environment.ProcessId) { Toast("Aura", "Под курсором нет чужого окна."); return; }
         if (Settings.IsExcluded(w.Process)) { Toast("Aura", "Приложение в исключениях — не запоминаю."); return; }

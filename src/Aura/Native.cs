@@ -30,6 +30,9 @@ public static class Native
     const uint LEFTDOWN = 0x2, LEFTUP = 0x4, RIGHTDOWN = 0x8, RIGHTUP = 0x10;
     [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
     [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);
+    [DllImport("user32.dll")] static extern bool GetPhysicalCursorPos(out POINT p);
+    /// v0.5.3 high-DPI: physical pixels (same space as UIA BoundingRectangle / SendInput / screen capture), fallback to GetCursorPos.
+    public static bool CursorPhysical(out POINT p) => GetPhysicalCursorPos(out p) || GetCursorPos(out p);
     [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(POINT p);
     [DllImport("user32.dll")] public static extern IntPtr GetAncestor(IntPtr h, uint flags);
     [DllImport("user32.dll")] static extern uint GetDoubleClickTime();
@@ -74,6 +77,13 @@ public static class Native
 
     public record WindowInfo(IntPtr Hwnd, string Title, string Process, int Pid);
 
+    /// v0.5.3: true if the foreground window is the target or one of Aura's own windows (overlay / indicator).
+    public static bool ForegroundIsTargetOrAura(IntPtr target)
+    {
+        var h = GetForegroundWindow();
+        if (h == target || h == IntPtr.Zero) return h == target;
+        GetWindowThreadProcessId(h, out var pid); return pid == (uint)Environment.ProcessId;
+    }
     public static WindowInfo? Foreground()
     {
         var h = GetForegroundWindow();

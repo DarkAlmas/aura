@@ -36,7 +36,11 @@ public static class Actions
                     Rules.Add(new Rule { When = parts[0], Suggest = parts[1], Process = fg?.Process ?? "" }); Rules.Sync();
                     return $"Добавил правило: вижу «{parts[0]}» → предложить «{parts[1]}» (только подсказка).";
                 }
-            case "WAIT": if (int.TryParse(it.Arg, out var sec)) await Task.Delay(Math.Clamp(sec, 1, 30) * 1000); return "Подождал.";
+            case "WAIT": // v0.9.4: Стоп / Пауза interrupt a wait within 0.25 s
+                if (int.TryParse(it.Arg, out var sec))
+                    for (int ms = Math.Clamp(sec, 1, 30) * 1000; ms > 0; ms -= 250)
+                    { if (StopAll || App.Current.Settings.Paused) return "Остановлено."; await Task.Delay(Math.Min(250, ms)); }
+                return "Подождал.";
         }
         if (fg == null || !Native.IsWindow(fg.Hwnd)) return "Нет окна для действия.";
         if (st.IsExcluded(fg.Process)) return "Приложение в исключениях.";
@@ -120,7 +124,9 @@ public static class Actions
             if (App.Current.Settings.Paused || StopAll) return;
             var it = a.Kind switch { "LaunchExe" => new Ai.Intent("LAUNCH", a.Arg), "OpenUrl" => new Ai.Intent("OPEN", a.Arg), "Wait" => new Ai.Intent("WAIT", a.Arg), _ => new Ai.Intent("CLICK", a.Arg) };
             var fg = Native.Foreground();
-            await Run(it, fg != null && fg.Pid != Environment.ProcessId ? fg : null);
+            if (it.Kind == "CLICK" && fg != null && st.ActDisabled(fg.Process)) { App.Current.Toast("Aura · При старте", $"«{a.Arg}»: в {fg.Process} действия запрещены — пропускаю."); continue; } // v0.9.4
+            var r = await Run(it, fg != null && fg.Pid != Environment.ProcessId ? fg : null);
+            if (r.StartsWith("Остановлено")) { App.Current.Toast("Aura · При старте", "Остановлено — остальные шаги не выполнены."); return; }
             await Task.Delay(Math.Clamp(st.StepDelayMs, 200, 10000));
         }
     }

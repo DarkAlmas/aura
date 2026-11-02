@@ -58,19 +58,26 @@ public partial class App : Application
         menu.Items.Add("⏹ Стоп всё (действие/серия)", null, (_, _) => Actions.Stop());
         menu.Items.Add("🛡 Строгий профиль (всё фоновое выкл.)", null, (_, _) => { Actions.Stop(); Learning = false; _overlay?.SafeClose(); Settings.Strict(); SyncMenu(); Watcher.Sync(); Rules.Sync(); Toast("Aura", "Строгий профиль: автоклик, действия, правила, ИИ, захват экрана и автозапуск выключены."); });
         menu.Items.Add("↩ Вернуть мой профиль", null, (_, _) => { _overlay?.SafeClose(); if (Settings.RestoreProfile()) { SyncMenu(); Watcher.Sync(); Rules.Sync(); Toast("Aura", "Прежние настройки восстановлены."); } else Toast("Aura", "Нечего возвращать — строгий профиль не включался."); });
-        menu.Items.Add("▶ Последняя подсказка (Делаю 1 с + Стоп)", null, async (_, _) => await RunLastSuggestion());
+        var lastItem = (Forms.ToolStripMenuItem)menu.Items.Add("▶ Последняя подсказка (Делаю 1 с + Стоп)", null, async (_, _) => await RunLastSuggestion());
         menu.Items.Add("↶ Забыть последнюю запомненную кнопку", null, (_, _) =>
         {
             var b = Buttons.List().OrderByDescending(x => x.Created).FirstOrDefault();
             if (b == null || (DateTime.Now - b.Created).TotalMinutes > 30) { Toast("Aura", "Нечего отменять (за последние 30 мин ничего не запоминал)."); return; }
             Buttons.Delete(b); _overlay?.Reload(); Toast("Aura", $"Забыл «{b.Name}» ({b.Process})."); Watcher.Sync();
         });
-        menu.Items.Add("💤 Подсказки: отложить на 1 час", null, (_, _) =>
+        var snoozeItem = (Forms.ToolStripMenuItem)menu.Items.Add("💤 Подсказки: отложить на 1 час", null, (_, _) =>
         {
             if (DateTime.Now < RulesSnoozeUntil) { RulesSnoozeUntil = DateTime.MinValue; Toast("Aura", "Подсказки снова включены."); }
             else { RulesSnoozeUntil = DateTime.Now.AddHours(1); Toast("Aura", $"Подсказки молчат до {RulesSnoozeUntil:HH:mm} (повтор — включить сразу)."); }
             RefreshLook();
         });
+        menu.Opening += (_, _) => // v0.8.5: live menu labels
+        {
+            var fresh = (DateTime.Now - _suggAt).TotalMinutes <= 5 && LastSuggestion is { } ls0;
+            lastItem.Text = fresh && LastSuggestion is { } ls ? $"▶ Нажать «{(ls.Rule.Suggest.Length > 24 ? ls.Rule.Suggest[..24] + "…" : ls.Rule.Suggest)}» ({ls.Fg.Process}) — Делаю 1 с" : "▶ Последняя подсказка (нет свежих)";
+            lastItem.Enabled = fresh && !Settings.Paused;
+            snoozeItem.Text = DateTime.Now < RulesSnoozeUntil ? $"🔔 Подсказки: включить сейчас (отложены до {RulesSnoozeUntil:HH:mm})" : "💤 Подсказки: отложить на 1 час";
+        };
         var quiet = new Forms.ToolStripMenuItem("Подсказки тихо (звук, без всплывашек)") { CheckOnClick = true, Checked = Settings.RulesQuiet };
         quiet.CheckedChanged += (_, _) => { Settings.RulesQuiet = quiet.Checked; Settings.Save(); };
         menu.Items.Add(quiet);

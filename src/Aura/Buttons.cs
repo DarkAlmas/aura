@@ -105,21 +105,24 @@ public static class Buttons
         var st = App.Current.Settings;
         if (st.Paused || App.Current.ActionCts != null) return null;
         var cts = new CancellationTokenSource(); App.Current.ActionCts = cts;
+        TargetHighlight? hl = null; // v0.9.2: frame what will be pressed during the 1 s countdown
         try
         {
+            try { if (hit.Bounds.Width > 0 && hit.Bounds.Height > 0) { hl = new TargetHighlight(); hl.ShowAt(hit.Bounds); } } catch { }
             App.Current.Look.SetDoing(hit.Label + (act == ClickAction.DoubleClick ? " ×2" : act == ClickAction.RightClick ? " (ПКМ)" : ""), stoppable: true); App.Current.Look.Show();
             await Task.Delay(1000, cts.Token);
             if (App.Current.Settings.Paused) throw new OperationCanceledException();
             if (guardLeft && hwnd != IntPtr.Zero && !Native.ForegroundIsTargetOrAura(hwnd))
             { App.Current.Toast("Aura", $"Ты ушёл из окна — «{hit.Label}» не нажимаю."); return null; }
             if (hwnd != IntPtr.Zero && Native.GetForegroundWindow() != hwnd) { if (requireForeground) return null; Native.SetForegroundWindow(hwnd); await Task.Delay(150, cts.Token); }
+            try { hl?.Close(); hl = null; } catch { }
             var how = await Task.Run(() => UiaFinder.Click(hit, act));
             if (App.Current.Settings.ClickSound) System.Media.SystemSounds.Asterisk.Play();
             App.Current.Toast("Aura", $"Нажал «{hit.Label}» ({how}).");
             return how;
         }
         catch (OperationCanceledException) { App.Current.Toast("Aura", "Остановлено."); return null; }
-        finally { if (ReferenceEquals(App.Current.ActionCts, cts)) App.Current.ActionCts = null; App.Current.RefreshLook(); }
+        finally { try { hl?.Close(); } catch { } if (ReferenceEquals(App.Current.ActionCts, cts)) App.Current.ActionCts = null; App.Current.RefreshLook(); }
     }
 
     /// Locate a learned button in a window: UIA → (opt-in) OCR by its exact name → (opt-in) template. No hooks.

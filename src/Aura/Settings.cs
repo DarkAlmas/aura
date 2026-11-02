@@ -37,7 +37,7 @@ public sealed class Settings
     public bool RulesOptIn { get; set; } = false;
     public bool RulesQuiet { get; set; } = false; // v0.6.3: hint = short sound + tray tooltip, no balloon
     public List<string> ActDisabledApps { get; set; } = new();
-    public bool ActDisabled(string p) => ActDisabledApps.Exists(a => string.Equals(a, p, StringComparison.OrdinalIgnoreCase));
+    public bool ActDisabled(string p) => ActDisabledApps.Exists(a => string.Equals(Bare(a), p, StringComparison.OrdinalIgnoreCase));
     /// «ИИ (сеть)» — the ONLY switch that allows network. OFF by default.
     public bool AiOptIn { get; set; } = false;
     // v0.6.4 profiles: «Строгий» turns every opt-in off and remembers the previous set here
@@ -123,7 +123,7 @@ public sealed class Settings
     void Normalize()
     {
         static List<string> L(List<string>? l, int max) => (l ?? new()).Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Take(max).ToList();
-        ExcludedApps = L(ExcludedApps?.Select(Bare).ToList(), 200); AutoAllowed = L(AutoAllowed, 200); ActDisabledApps = L(ActDisabledApps, 200);
+        ExcludedApps = L(ExcludedApps?.Select(Bare).ToList(), 200); AutoAllowed = L(AutoAllowed, 200); ActDisabledApps = L(ActDisabledApps?.Select(Bare).ToList(), 200);
         StartupActions = (StartupActions ?? new()).Where(a => a != null && !string.IsNullOrWhiteSpace(a.Kind)).Take(20).ToList();
     }
     public bool IsExcluded(string process) =>

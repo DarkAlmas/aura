@@ -78,7 +78,9 @@ public sealed class Settings
 
     public static readonly System.Collections.Generic.List<string> Recovered = new(); // v0.8.7: files restored from .bak this session
     // v0.7.1 crash-safe IO: write .tmp then atomic replace (keeps .bak); a broken file is kept as .broken and .bak is used — never silently wiped.
-    public static void AtomicWrite(string path, string text)
+    static readonly object _ioLock = new(); // v0.9.19: UI + worker saves never race on the same .tmp
+    public static void AtomicWrite(string path, string text) { lock (_ioLock) AtomicWriteCore(path, text); }
+    static void AtomicWriteCore(string path, string text)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var tmp = path + ".tmp"; File.WriteAllText(tmp, text);

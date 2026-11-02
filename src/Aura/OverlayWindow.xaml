@@ -51,6 +51,7 @@
           <ListBox x:Name="BtnList" Margin="36,6,0,0" MaxHeight="140" FontSize="12" Visibility="Collapsed"/>
           <WrapPanel x:Name="BtnBar" Margin="36,6,0,0" Visibility="Collapsed">
             <Button Style="{StaticResource Ghost}" Click="BtnDelete_Click"><TextBlock Text="Удалить" Foreground="{StaticResource Muted}"/></Button>
+            <Button Style="{StaticResource Ghost}" Click="BtnUndo_Click" ToolTip="Забыть последнюю запомненную (за 30 мин)" AutomationProperties.Name="Отменить последнюю"><TextBlock Text="↶" Foreground="{StaticResource Muted}"/></Button>
             <Button Style="{StaticResource Ghost}" Click="BtnClear_Click"><TextBlock Text="Очистить всё" Foreground="{StaticResource Muted}"/></Button>
             <Button Style="{StaticResource Ghost}" Click="BtnRun_Click"><TextBlock Text="▶ Нажать" Foreground="{StaticResource Accent}"/></Button>
             <Button Style="{StaticResource Ghost}" Click="BtnSeries_Click" ToolTip="Все выученные кнопки этого окна по порядку, каждая с «Делаю» 1 с"><TextBlock Text="⏩ Серия" Foreground="{StaticResource Accent}"/></Button>

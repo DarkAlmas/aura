@@ -227,6 +227,12 @@ public partial class OverlayWindow : Window
         if (BtnList.SelectedItem is not LearnedButton b) { LearnInfo.Text = "Выбери кнопку в списке."; return; }
         Buttons.Delete(b); LoadButtons(); LearnInfo.Text = $"Забыл: {b.Label}.";
     }
+    void BtnUndo_Click(object s, RoutedEventArgs e)
+    {
+        var b = Buttons.List().OrderByDescending(x => x.Created).FirstOrDefault();
+        if (b == null || (DateTime.Now - b.Created).TotalMinutes > 30) { LearnInfo.Text = "Нечего отменять (за 30 мин ничего не запоминал)."; return; }
+        Buttons.Delete(b); LoadButtons(); LearnInfo.Text = $"Отменил: {b.Label}."; Watcher.Sync();
+    }
     void BtnClear_Click(object s, RoutedEventArgs e) { var n = Buttons.List().Count; if (n == 0) return; if (MessageBox.Show(this, $"Забыть все {n} кнопок? Это не отменить.", "Aura", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return; Buttons.Clear(); LoadButtons(); LearnInfo.Text = "Список очищен."; }
 
     // ---- v0.5.0 ----

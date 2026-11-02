@@ -187,7 +187,8 @@ public partial class App : Application
         if (fresh) await RunLastSuggestion();
     }
     DateTime _suggAt = DateTime.MinValue;
-    public void NoteSuggestion() => _suggAt = DateTime.Now;
+    public void NoteSuggestion() { _suggAt = DateTime.Now; RefreshLook(); }
+    public DateTime SuggAt => _suggAt;
     // v0.7.7: also from tray «▶ Последняя подсказка» (explicit click, within 5 min)
     public async System.Threading.Tasks.Task RunLastSuggestion()
     {
@@ -196,6 +197,7 @@ public partial class App : Application
         var (r, fg) = ls;
         if (!Native.IsWindow(fg.Hwnd) || Settings.IsExcluded(fg.Process) || Settings.ActDisabled(fg.Process)) { Toast("Aura", "Окно закрыто или в «не трогать» — не нажимаю."); return; }
         Native.SetForegroundWindow(fg.Hwnd); await System.Threading.Tasks.Task.Delay(250);
+        if (Settings.Paused || ActionCts != null || !Native.IsWindow(fg.Hwnd)) return; // v0.7.9: Pause during the hand-off cancels
         var lb = Buttons.ByName(r.Suggest, fg.Process);
         var kind = lb?.Action == ClickAction.DoubleClick ? "DOUBLECLICK" : lb?.Action == ClickAction.RightClick ? "RIGHTCLICK" : "CLICK";
         Actions.StopAll = false; r.Used++; try { Rules.Save(); } catch { }

@@ -17,7 +17,7 @@ public partial class LookIndicator : Window
     public void SetState(string app, bool paused)
     {
         var st = App.Current.Settings;
-        Label.Text = (paused ? "Пауза" : $"Смотрю · {app}") + (App.Current.Learning ? "  ●  Учусь" : "") + (!paused && Watcher.On ? "  ·  действую" : "") + (App.Current.Scanning is string sc ? $"  ·  ищу: {sc}…" : "");
+        Label.Text = (paused ? "Пауза" : $"Смотрю · {app}") + (App.Current.Learning ? "  ●  Учусь" : "") + (!paused && Watcher.On ? "  ·  действую" : "") + (App.Current.Scanning is string sc ? $"  ·  ищу: {sc}…" : "") + (!paused && st.RulesOptIn ? ((System.DateTime.Now - App.Current.SuggAt).TotalSeconds < 30 && App.Current.LastSuggestion is { } ls ? $"  ·  💡 {ls.Rule.Suggest}" : "  ·  правила") : "");
         Dot.Fill = App.Current.Learning ? Brushes.Red : paused ? (Brush)FindResource("Muted") : (Brush)FindResource("Accent");
         StopBtn.Visibility = Visibility.Collapsed;
     }

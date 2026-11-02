@@ -52,6 +52,7 @@ public partial class App : Application
         menu.Items.Add("⏹ Стоп всё (действие/серия)", null, (_, _) => Actions.Stop());
         menu.Items.Add("🛡 Строгий профиль (всё фоновое выкл.)", null, (_, _) => { Actions.Stop(); Learning = false; _overlay?.SafeClose(); Settings.Strict(); SyncMenu(); Watcher.Sync(); Rules.Sync(); Toast("Aura", "Строгий профиль: автоклик, действия, правила, ИИ, захват экрана и автозапуск выключены."); });
         menu.Items.Add("↩ Вернуть мой профиль", null, (_, _) => { _overlay?.SafeClose(); if (Settings.RestoreProfile()) { SyncMenu(); Watcher.Sync(); Rules.Sync(); Toast("Aura", "Прежние настройки восстановлены."); } else Toast("Aura", "Нечего возвращать — строгий профиль не включался."); });
+        menu.Items.Add("▶ Последняя подсказка (Делаю 1 с + Стоп)", null, async (_, _) => await RunLastSuggestion());
         var quiet = new Forms.ToolStripMenuItem("Подсказки тихо (звук, без всплывашек)") { CheckOnClick = true, Checked = Settings.RulesQuiet };
         quiet.CheckedChanged += (_, _) => { Settings.RulesQuiet = quiet.Checked; Settings.Save(); };
         menu.Items.Add(quiet);
@@ -171,7 +172,15 @@ public partial class App : Application
     async void OnBalloonClicked()
     {
         var fresh = (DateTime.Now - _hintAt).TotalSeconds < 90; _hintAt = DateTime.MinValue;
-        if (!fresh || LastSuggestion is not { } ls || Settings.Paused || ActionCts != null) return;
+        if (fresh) await RunLastSuggestion();
+    }
+    DateTime _suggAt = DateTime.MinValue;
+    public void NoteSuggestion() => _suggAt = DateTime.Now;
+    // v0.7.7: also from tray «▶ Последняя подсказка» (explicit click, within 5 min)
+    public async System.Threading.Tasks.Task RunLastSuggestion()
+    {
+        if ((DateTime.Now - _suggAt).TotalMinutes > 5) { Toast("Aura", "Свежих подсказок нет."); return; }
+        if (LastSuggestion is not { } ls || Settings.Paused || ActionCts != null) return;
         var (r, fg) = ls;
         if (!Native.IsWindow(fg.Hwnd) || Settings.IsExcluded(fg.Process) || Settings.ActDisabled(fg.Process)) { Toast("Aura", "Окно закрыто или в «не трогать» — не нажимаю."); return; }
         Native.SetForegroundWindow(fg.Hwnd); await System.Threading.Tasks.Task.Delay(250);

@@ -93,7 +93,15 @@ public static class UiaFinder
     }
 
     /// Single click on one confirmed target: Invoke/Toggle/Select pattern, else one SendInput click at its clickable point.
+    /// v0.9.37: in-memory log of real presses this session (never written to disk).
+    public static readonly List<string> Log = new();
     public static string Click(Target t, ClickAction act = ClickAction.Click, int expectPid = 0)
+    {
+        var r = ClickCore(t, act, expectPid);
+        if (!r.StartsWith("не нажал")) lock (Log) { var n = t.Name ?? ""; Log.Add($"{System.DateTime.Now:HH:mm:ss} «{(n.Length > 40 ? n[..40] + "…" : n)}» ({r})"); if (Log.Count > 30) Log.RemoveAt(0); }
+        return r;
+    }
+    static string ClickCore(Target t, ClickAction act, int expectPid)
     {
         var el = t.Element;
         string an = act == ClickAction.DoubleClick ? "двойной" : act == ClickAction.RightClick ? "правый" : "мышь";

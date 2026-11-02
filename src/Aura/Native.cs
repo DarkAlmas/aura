@@ -35,6 +35,10 @@ public static class Native
     public static bool CursorPhysical(out POINT p) => GetPhysicalCursorPos(out p) || GetCursorPos(out p);
     [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(POINT p);
     [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h);
+    [StructLayout(LayoutKind.Sequential)] struct LASTINPUTINFO { public uint cbSize, dwTime; }
+    [DllImport("user32.dll")] static extern bool GetLastInputInfo(ref LASTINPUTINFO i);
+    /// v0.9.30: ms since the user's last input (timestamp only — no hook, no key data).
+    public static int IdleMs() { var i = new LASTINPUTINFO { cbSize = 8 }; return GetLastInputInfo(ref i) ? (int)unchecked((uint)Environment.TickCount - i.dwTime) : int.MaxValue; }
     public static int PidOf(IntPtr h) { GetWindowThreadProcessId(h, out var p); return (int)p; }
     [DllImport("user32.dll")] public static extern IntPtr GetAncestor(IntPtr h, uint flags);
     [DllImport("user32.dll")] static extern uint GetDoubleClickTime();

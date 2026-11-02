@@ -50,8 +50,8 @@ public partial class App : Application
         menu.Items.Add(_pauseItem); menu.Items.Add(_ocrItem); menu.Items.Add(_actItem); menu.Items.Add(_aiItem);
         menu.Items.Add("Запомнить под курсором (через 3 с)", null, (_, _) => RememberUnderCursor(3));
         menu.Items.Add("⏹ Стоп всё (действие/серия)", null, (_, _) => Actions.Stop());
-        menu.Items.Add("🛡 Строгий профиль (всё фоновое выкл.)", null, (_, _) => { Actions.Stop(); Settings.Strict(); SyncMenu(); Watcher.Sync(); Rules.Sync(); Toast("Aura", "Строгий профиль: автоклик, действия, правила, ИИ, захват экрана и автозапуск выключены."); });
-        menu.Items.Add("↩ Вернуть мой профиль", null, (_, _) => { if (Settings.RestoreProfile()) { SyncMenu(); Watcher.Sync(); Rules.Sync(); Toast("Aura", "Прежние настройки восстановлены."); } else Toast("Aura", "Нечего возвращать — строгий профиль не включался."); });
+        menu.Items.Add("🛡 Строгий профиль (всё фоновое выкл.)", null, (_, _) => { Actions.Stop(); Learning = false; _overlay?.SafeClose(); Settings.Strict(); SyncMenu(); Watcher.Sync(); Rules.Sync(); Toast("Aura", "Строгий профиль: автоклик, действия, правила, ИИ, захват экрана и автозапуск выключены."); });
+        menu.Items.Add("↩ Вернуть мой профиль", null, (_, _) => { _overlay?.SafeClose(); if (Settings.RestoreProfile()) { SyncMenu(); Watcher.Sync(); Rules.Sync(); Toast("Aura", "Прежние настройки восстановлены."); } else Toast("Aura", "Нечего возвращать — строгий профиль не включался."); });
         var quiet = new Forms.ToolStripMenuItem("Подсказки тихо (звук, без всплывашек)") { CheckOnClick = true, Checked = Settings.RulesQuiet };
         quiet.CheckedChanged += (_, _) => { Settings.RulesQuiet = quiet.Checked; Settings.Save(); };
         menu.Items.Add(quiet);
@@ -159,7 +159,12 @@ public partial class App : Application
         if (_actItem != null) _actItem.Checked = Settings.ActOptIn;
         if (_aiItem != null) _aiItem.Checked = Settings.AiOptIn;
     }
-    public void TrayHint(string t) { if (_tray != null) _tray.Text = ("Aura · " + t).Length > 63 ? ("Aura · " + t)[..63] : "Aura · " + t; }
+    public void TrayHint(string t)
+    {
+        if (_tray == null) return; var txt = "Aura · " + t; _tray.Text = txt.Length > 63 ? txt[..63] : txt;
+        var tm = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(30) }; // v0.7.5: hint fades back to the normal tooltip
+        tm.Tick += (_, _) => { tm.Stop(); if (_tray != null && _tray.Text.StartsWith("Aura · ")) _tray.Text = $"Aura — {_combo}"; }; tm.Start();
+    }
     // v0.7.2: clicking a rule-hint balloon = the user's explicit OK → bring that window back and press via «Делаю» 1 с + Стоп (never without the click)
     DateTime _hintAt = DateTime.MinValue;
     public void ToastHint(string title, string text) { Toast(title, text); _hintAt = DateTime.Now; }

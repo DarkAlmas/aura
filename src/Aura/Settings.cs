@@ -38,17 +38,41 @@ public sealed class Settings
     public bool AiOptIn { get; set; } = false;
     public string AiBaseUrl { get; set; } = Ai.ProxyBase;
     public string AiModel { get; set; } = "openai/gpt-oss-20b";
-    public string AiKey { get; set; } = "";
+    /// v0.5.5: the key is never stored in plain text. On disk only «AiKeyProtected» (DPAPI, CurrentUser, base64).
+    /// Old plain «AiKey» from settings.json is read once, protected and removed on the next Save().
+    [System.Text.Json.Serialization.JsonIgnore] public string AiKey { get => Unprotect(AiKeyProtected); set => AiKeyProtected = Protect(value); }
+    public string AiKeyProtected { get; set; } = "";
+    [System.Text.Json.Serialization.JsonPropertyName("AiKey")]
+    public string? LegacyAiKey { get => null; set { if (!string.IsNullOrEmpty(value)) AiKey = value; } }
+    [System.Text.Json.Serialization.JsonIgnore] public bool HadLegacyKey;
+    static string Protect(string v)
+    {
+        if (string.IsNullOrEmpty(v)) return "";
+        try { return Convert.ToBase64String(System.Security.Cryptography.ProtectedData.Protect(System.Text.Encoding.UTF8.GetBytes(v), null, System.Security.Cryptography.DataProtectionScope.CurrentUser)); } catch { return ""; }
+    }
+    static string Unprotect(string v)
+    {
+        if (string.IsNullOrEmpty(v)) return "";
+        try { return System.Text.Encoding.UTF8.GetString(System.Security.Cryptography.ProtectedData.Unprotect(Convert.FromBase64String(v), null, System.Security.Cryptography.DataProtectionScope.CurrentUser)); } catch { return ""; }
+    }
     /// Attach OCR text of the window to the AI request (needs OCR opt-in too). OFF by default.
     public bool AiAttachText { get; set; } = false;
 
     public static string Dir => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Aura");
     static string FilePath => Path.Combine(Dir, "settings.json");
-    static readonly JsonSerializerOptions Opt = new() { WriteIndented = true };
+    static readonly JsonSerializerOptions Opt = new() { WriteIndented = true, DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull };
 
     public static Settings Load()
     {
-        try { if (File.Exists(FilePath)) return JsonSerializer.Deserialize<Settings>(File.ReadAllText(FilePath)) ?? new(); }
+        try
+        {
+            if (File.Exists(FilePath))
+            {
+                var txt = File.ReadAllText(FilePath); var r = JsonSerializer.Deserialize<Settings>(txt) ?? new();
+                if (txt.Contains("\"AiKey\"")) r.Save(); // rewrite without the plain key
+                return r;
+            }
+        }
         catch { }
         var s = new Settings(); s.Save(); return s;
     }

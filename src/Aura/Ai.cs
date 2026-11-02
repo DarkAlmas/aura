@@ -27,7 +27,7 @@ public static class Ai
         public override string ToString() => Kind switch
         {
             "CLICK" => $"Нажать «{Arg}»", "DOUBLECLICK" => $"Двойной клик «{Arg}»", "RIGHTCLICK" => $"ПКМ «{Arg}»",
-            "FIND" => $"Найти «{Arg}»", "REMEMBER" => $"Запомнить «{Arg}»", "LAUNCH" => $"Запустить {Arg}", "OPEN" => $"Открыть {Arg}",
+            "FIND" => $"Найти «{Arg}»", "REMEMBER" => $"Запомнить «{Arg}»", "LAUNCH" => (Actions.LaunchProblem(Arg, true) is null ? "Запустить: " : "⛔ откажу — Запустить: ") + Arg, "OPEN" => (global::System.Uri.TryCreate(Arg.Trim(), global::System.UriKind.Absolute, out var u) && (u.Scheme == "http" || u.Scheme == "https") ? "Открыть: " : "⛔ откажу — Открыть: ") + Arg,
             "WAIT" => $"Подождать {Arg} с", _ => $"{Kind} {Arg}"
         };
     }

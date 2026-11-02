@@ -256,7 +256,7 @@ public partial class OverlayWindow : Window
         var st = App.Current.Settings;
         if (AiBackend.SelectedIndex == 0) { st.AiBaseUrl = Ai.ProxyBase; st.AiModel = "openai/gpt-oss-20b"; }
         else if (AiBackend.SelectedIndex == 1) { st.AiBaseUrl = Ai.OllamaBase; if (st.AiModel.Contains('/')) st.AiModel = "qwen2.5:7b"; }
-        else { AiReply.Text = "Свой URL/модель/ключ — в settings.json (AiBaseUrl, AiModel, AiKey)."; App.OpenPath(Settings.Dir); }
+        else { AiReply.Text = "Свой URL/модель — в settings.json (AiBaseUrl, AiModel). Ключ: впиши \"AiKey\" — при запуске Aura зашифрует его (DPAPI) и удалит открытый текст."; App.OpenPath(Settings.Dir); }
         st.Save();
     }
     void AskBox_KeyDown(object s, KeyEventArgs e) { if (e.Key == Key.Enter) { Ask_Click(s, e); e.Handled = true; } }
@@ -294,7 +294,7 @@ public partial class OverlayWindow : Window
         {
             foreach (var it in (_intents ?? new()).Where(sel.Contains))
             {
-                var r = await Actions.Run(it, _fg, guardLeft: true); log.Add(r); AiReply.Text = string.Join("\n", log);
+                var r = await Actions.Run(it, _fg, guardLeft: true, fromAi: true); log.Add(r); AiReply.Text = string.Join("\n", log);
                 if (r.StartsWith("Остановлено") || App.Current.Settings.Paused) { log.Add("Прервано — остальные пункты не выполнены."); AiReply.Text = string.Join("\n", log); break; }
                 await Task.Delay(Math.Clamp(App.Current.Settings.StepDelayMs, 200, 10000));
             }

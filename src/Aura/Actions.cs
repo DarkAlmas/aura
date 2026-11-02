@@ -21,13 +21,13 @@ public sealed class StartupAction
 /// Executes one confirmed intent (from AI or «При старте»/«Серия»). Every click goes through Buttons.DoWithCountdown («Делаю» 1 с + Стоп).
 public static class Actions
 {
-    public static async Task<string> Run(Ai.Intent it, Native.WindowInfo? fg, bool guardLeft = false)
+    public static async Task<string> Run(Ai.Intent it, Native.WindowInfo? fg, bool guardLeft = false, bool fromAi = false)
     {
         var st = App.Current.Settings;
         if (st.Paused) return "Пауза — не выполняю.";
         switch (it.Kind)
         {
-            case "LAUNCH": return Launch(it.Arg);
+            case "LAUNCH": return Launch(it.Arg, fromAi);
             case "OPEN": return Open(it.Arg);
             case "WAIT": if (int.TryParse(it.Arg, out var sec)) await Task.Delay(Math.Clamp(sec, 1, 30) * 1000); return "Подождал.";
         }
@@ -64,14 +64,35 @@ public static class Actions
         return null;
     }
 
-    public static string Launch(string path)
+    static readonly string[] LaunchExt = { ".exe", ".bat", ".cmd" };
+    /// v0.5.5 (Hack WARN): only an existing local .exe/.bat/.cmd by full path, no «..», no URL schemes / UNC.
+    /// From AI it must additionally be already approved by the user as a «При старте → Запустить» entry.
+    public static string? LaunchProblem(string path, bool fromAi)
     {
+        var p = Environment.ExpandEnvironmentVariables((path ?? "").Trim().Trim('"'));
+        if (p.Length == 0) return "Пустой путь.";
+        if (p.Contains("..") || p.Contains("://") || p.StartsWith(@"\\") || p.StartsWith("//") || p.IndexOfAny(new[] { '|', '&', '<', '>', '^' }) >= 0) return $"Отказ: недопустимый путь «{p}».";
+        if (!System.IO.Path.IsPathFullyQualified(p)) return $"Отказ: нужен полный путь, а не «{p}».";
+        if (!LaunchExt.Contains(System.IO.Path.GetExtension(p).ToLowerInvariant())) return $"Отказ: запускаю только .exe/.bat/.cmd («{p}»).";
+        if (!System.IO.File.Exists(p)) return $"Отказ: файла нет «{p}».";
+        if (fromAi && !App.Current.Settings.StartupActions.Any(a => a.Kind == "LaunchExe" && string.Equals(Environment.ExpandEnvironmentVariables(a.Arg.Trim().Trim('"')), p, StringComparison.OrdinalIgnoreCase)))
+            return $"Отказ: ИИ может запускать только программы из твоего списка «При старте → Запустить». Добавь «{p}» туда сам.";
+        return null;
+    }
+    public static string Launch(string path, bool fromAi = false)
+    {
+        var bad = LaunchProblem(path, fromAi);
+        if (bad != null) { App.Current.Toast("Aura", bad); return bad; }
+        path = Environment.ExpandEnvironmentVariables(path.Trim().Trim('"'));
         try { Process.Start(new ProcessStartInfo(Environment.ExpandEnvironmentVariables(path.Trim('"'))) { UseShellExecute = true }); return "Запустил " + path; }
         catch (Exception ex) { return "Не запустил: " + ex.Message; }
     }
     public static string Open(string url)
     {
-        if (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) return "Только http/https ссылки.";
+        url = (url ?? "").Trim();
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var u) || (u.Scheme != Uri.UriSchemeHttp && u.Scheme != Uri.UriSchemeHttps) || !string.IsNullOrEmpty(u.UserInfo) || url.Any(char.IsWhiteSpace))
+        { var m = $"Отказ: открываю только http/https ссылки («{url}»)."; App.Current.Toast("Aura", m); return m; }
+        url = u.AbsoluteUri;
         try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); return "Открыл " + url; }
         catch (Exception ex) { return "Не открыл: " + ex.Message; }
     }

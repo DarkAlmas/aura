@@ -382,6 +382,17 @@ public partial class OverlayWindow : Window
     }
     void RulesChk_Click(object s, RoutedEventArgs e) { App.Current.Settings.RulesOptIn = RulesChk.IsChecked == true; App.Current.Settings.Save(); Rules.Sync(); }
     // v0.6.8: presets only fill the boxes; the user still presses «Добавить» (and rules still only suggest)
+    // v0.6.9: «Вижу» dropdown = visible UIA names of the current window (one read, in memory, on demand)
+    async void RuleWhen_DropDown(object s, EventArgs e)
+    {
+        if (_fg == null || RuleWhen.Items.Count > 0 || App.Current.Settings.IsExcluded(_fg.Process)) return;
+        try
+        {
+            var uia = await Task.Run(() => UiaFinder.Enumerate(_fg.Hwnd));
+            foreach (var n in uia.Select(t => (t.Name ?? "").Trim()).Where(n => n.Length >= 2 && n.Length <= 60).Distinct().Take(60)) RuleWhen.Items.Add(n);
+        }
+        catch { }
+    }
     void RulePreset_Click(object s, RoutedEventArgs e) { if (s is FrameworkElement f && f.Tag is string t && t.Split('|') is { Length: 2 } p) { RuleWhen.Text = p[0]; RuleSuggest.Text = p[1]; RuleSuggest.Focus(); } }
     void RuleAdd_Click(object s, RoutedEventArgs e)
     {

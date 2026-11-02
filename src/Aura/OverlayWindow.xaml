@@ -120,7 +120,7 @@
             <CheckBox x:Name="RulesChk" Margin="0,4,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="подсказывать в фоне (тост, раз в 60 с на правило)"/>
             <Grid Margin="0,6,0,0">
               <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
-              <TextBox x:Name="RuleWhen" Padding="4,2" FontSize="12" ToolTip="Вижу текст (кнопка/надпись в окне)"/>
+              <ComboBox x:Name="RuleWhen" IsEditable="True" FontSize="12" ToolTip="Вижу текст (кнопка/надпись в окне) — впиши или выбери из текущего окна" DropDownOpened="RuleWhen_DropDown"/>
               <TextBlock Grid.Column="1" Text=" → " VerticalAlignment="Center" Foreground="{StaticResource Muted}"/>
               <TextBox x:Name="RuleSuggest" Grid.Column="2" Padding="4,2" FontSize="12" ToolTip="Предложить нажать (имя кнопки)"/>
             </Grid>

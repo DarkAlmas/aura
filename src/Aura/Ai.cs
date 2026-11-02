@@ -73,6 +73,9 @@ RULE: <текст, который появляется в окне> => <имя �
                 .Append(new { role = "user", content = "Контекст: " + JsonSerializer.Serialize(ctx) + "\nЗапрос: " + request }).ToArray()
         };
         var baseUrl = string.IsNullOrWhiteSpace(st.AiBaseUrl) ? ProxyBase : st.AiBaseUrl.TrimEnd('/');
+        // v0.9.6: only https, or plain http to this PC (Ollama). Never send the key/context in clear text over the network.
+        if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var bu) || !(bu.Scheme == "https" || (bu.Scheme == "http" && bu.IsLoopback)) || !string.IsNullOrEmpty(bu.UserInfo))
+            return ($"Адрес ИИ «{baseUrl}» отклонён: нужен https:// или http://127.0.0.1 (локальный Ollama).", new());
         try
         {
             using var req = new HttpRequestMessage(HttpMethod.Post, baseUrl + "/chat/completions")

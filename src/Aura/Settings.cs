@@ -39,6 +39,17 @@ public sealed class Settings
     public bool ActDisabled(string p) => ActDisabledApps.Exists(a => string.Equals(a, p, StringComparison.OrdinalIgnoreCase));
     /// «ИИ (сеть)» — the ONLY switch that allows network. OFF by default.
     public bool AiOptIn { get; set; } = false;
+    // v0.6.4 profiles: «Строгий» turns every opt-in off and remembers the previous set here
+    public Dictionary<string, bool>? ProfileBackup { get; set; }
+    public Dictionary<string, bool> Snapshot() => new() { ["sc"] = ScreenCaptureOptIn, ["auto"] = AutoClickOptIn, ["act"] = ActOptIn, ["start"] = StartupOptIn, ["rules"] = RulesOptIn, ["ai"] = AiOptIn };
+    public void Strict() { ProfileBackup ??= Snapshot(); ScreenCaptureOptIn = AutoClickOptIn = ActOptIn = StartupOptIn = RulesOptIn = AiOptIn = false; Save(); }
+    public bool RestoreProfile()
+    {
+        if (ProfileBackup is not { } b) return false;
+        bool G(string k) => b.TryGetValue(k, out var v) && v;
+        ScreenCaptureOptIn = G("sc"); AutoClickOptIn = G("auto"); ActOptIn = G("act"); StartupOptIn = G("start"); RulesOptIn = G("rules"); AiOptIn = G("ai");
+        ProfileBackup = null; Save(); return true;
+    }
     public string AiBaseUrl { get; set; } = Ai.ProxyBase;
     public string AiModel { get; set; } = "openai/gpt-oss-20b";
     /// v0.5.5: the key is never stored in plain text. On disk only «AiKeyProtected» (DPAPI, CurrentUser, base64).

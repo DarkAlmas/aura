@@ -49,6 +49,8 @@ public partial class App : Application
         menu.Items.Add(_pauseItem); menu.Items.Add(_ocrItem); menu.Items.Add(_actItem); menu.Items.Add(_aiItem);
         menu.Items.Add("Запомнить под курсором (через 3 с)", null, (_, _) => RememberUnderCursor(3));
         menu.Items.Add("⏹ Стоп всё (действие/серия)", null, (_, _) => Actions.Stop());
+        menu.Items.Add("🛡 Строгий профиль (всё фоновое выкл.)", null, (_, _) => { Actions.Stop(); Settings.Strict(); SyncMenu(); Watcher.Sync(); Rules.Sync(); Toast("Aura", "Строгий профиль: автоклик, действия, правила, ИИ, захват экрана и автозапуск выключены."); });
+        menu.Items.Add("↩ Вернуть мой профиль", null, (_, _) => { if (Settings.RestoreProfile()) { SyncMenu(); Watcher.Sync(); Rules.Sync(); Toast("Aura", "Прежние настройки восстановлены."); } else Toast("Aura", "Нечего возвращать — строгий профиль не включался."); });
         var quiet = new Forms.ToolStripMenuItem("Подсказки тихо (звук, без всплывашек)") { CheckOnClick = true, Checked = Settings.RulesQuiet };
         quiet.CheckedChanged += (_, _) => { Settings.RulesQuiet = quiet.Checked; Settings.Save(); };
         menu.Items.Add(quiet);

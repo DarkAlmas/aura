@@ -218,7 +218,7 @@ public partial class App : Application
             $"ИИ (сеть): {On(st.AiOptIn)}{(st.AiOptIn ? $" → {(string.IsNullOrWhiteSpace(st.AiBaseUrl) ? "прокси Aura по умолчанию" : st.AiBaseUrl)}, текст окна: {On(st.AiAttachText)}" : " — в сеть ничего не уходит")}\n" +
             $"Запуск шагов при старте: {On(st.StartupOptIn)}\n" +
             $"Сохранять картинки кнопок: {On(st.SaveTemplates)} (файлов: {tpl})\n" +
-            $"Исключённые приложения: {string.Join(", ", st.ExcludedApps)}\n" +
+            $"Исключённые приложения: {string.Join(", ", st.ExcludedApps)}; всегда: окна ввода пароля Windows и менеджеры паролей\n" +
             $"«Не действовать» в: {(st.ActDisabledApps.Count == 0 ? "—" : string.Join(", ", st.ActDisabledApps))}\n\n" +
             $"Горячие клавиши (RegisterHotKey): окно {_combo}, под курсором {UnderCursorHotkey}, пауза {_hotkeyP?.Combo ?? "—"}, Esc — только пока идёт «Делаю».\n" +
             "Хуков клавиатуры/мыши нет. Скриншоты на диск не пишутся (кроме маленьких картинок кнопок, только если включено «Сохранять картинки»). Esc / Стоп / Пауза отменяют любое нажатие.";

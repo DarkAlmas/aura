@@ -118,5 +118,8 @@ public sealed class Settings
         AtomicWrite(FilePath, JsonSerializer.Serialize(this, Opt));
     }
     public bool IsExcluded(string process) =>
-        ExcludedApps.Exists(a => string.Equals(a, process, StringComparison.OrdinalIgnoreCase));
+        AlwaysExcluded.Contains(process ?? "") || ExcludedApps.Exists(a => string.Equals(a, process, StringComparison.OrdinalIgnoreCase));
+    /// v0.9.35: credential/lock screens and common password managers are ALWAYS excluded (not removable, applies to old settings too).
+    public static readonly HashSet<string> AlwaysExcluded = new(StringComparer.OrdinalIgnoreCase)
+    { "CredentialUIBroker", "consent", "LogonUI", "LockApp", "KeePass", "KeePassXC", "1Password", "Bitwarden", "Dashlane", "Enpass", "LastPass", "RoboForm", "NordPass" };
 }

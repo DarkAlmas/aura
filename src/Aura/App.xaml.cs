@@ -60,6 +60,12 @@ public partial class App : Application
             if (b == null || (DateTime.Now - b.Created).TotalMinutes > 30) { Toast("Aura", "Нечего отменять (за последние 30 мин ничего не запоминал)."); return; }
             Buttons.Delete(b); _overlay?.Reload(); Toast("Aura", $"Забыл «{b.Name}» ({b.Process})."); Watcher.Sync();
         });
+        menu.Items.Add("💤 Подсказки: отложить на 1 час", null, (_, _) =>
+        {
+            if (DateTime.Now < RulesSnoozeUntil) { RulesSnoozeUntil = DateTime.MinValue; Toast("Aura", "Подсказки снова включены."); }
+            else { RulesSnoozeUntil = DateTime.Now.AddHours(1); Toast("Aura", $"Подсказки молчат до {RulesSnoozeUntil:HH:mm} (повтор — включить сразу)."); }
+            RefreshLook();
+        });
         var quiet = new Forms.ToolStripMenuItem("Подсказки тихо (звук, без всплывашек)") { CheckOnClick = true, Checked = Settings.RulesQuiet };
         quiet.CheckedChanged += (_, _) => { Settings.RulesQuiet = quiet.Checked; Settings.Save(); };
         menu.Items.Add(quiet);
@@ -197,6 +203,7 @@ public partial class App : Application
         if (fresh) await RunLastSuggestion();
     }
     DateTime _suggAt = DateTime.MinValue;
+    public DateTime RulesSnoozeUntil = DateTime.MinValue; // v0.8.2: in-memory only; restart clears it
     public void NoteSuggestion() { _suggAt = DateTime.Now; RefreshLook(); RestartHintFade(); }
     public DateTime SuggAt => _suggAt;
     // v0.7.7: also from tray «▶ Последняя подсказка» (explicit click, within 5 min)

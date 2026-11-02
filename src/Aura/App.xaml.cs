@@ -150,6 +150,7 @@ public partial class App : Application
     {
         if (Settings.Paused) { Toast("Aura", "Пауза — не учусь."); return; }
         if (delaySec > 0) { Toast("Aura · Под курсором", $"Наведи мышь на кнопку — запомню через {delaySec} с."); await System.Threading.Tasks.Task.Delay(delaySec * 1000); }
+        if (Settings.Paused) { Toast("Aura", "Пауза — не учусь."); return; } // v0.6.1: paused during the 3 s wait
         if (!Native.CursorPhysical(out var p)) return;
         var w = Native.WindowAt(p);
         if (w == null || w.Pid == Environment.ProcessId) { Toast("Aura", "Под курсором нет чужого окна."); return; }

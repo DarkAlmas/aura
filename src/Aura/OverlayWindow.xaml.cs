@@ -47,7 +47,7 @@ public partial class OverlayWindow : Window
     }
 
     bool _armed, _closing, _acting;
-    List<UiaFinder.Target>? _all;
+    List<UiaFinder.Target>? _all; DateTime _allAt;
     UiaFinder.Target? _sel;
     TargetHighlight? _hl;
 
@@ -74,7 +74,7 @@ public partial class OverlayWindow : Window
         var hwnd = _fg.Hwnd; var q = FindBox.Text;
         try
         {
-            _all ??= await Task.Run(() => UiaFinder.Enumerate(hwnd));
+            if (_all == null || DateTime.Now - _allAt > TimeSpan.FromSeconds(5)) { _all = await Task.Run(() => UiaFinder.Enumerate(hwnd)); _allAt = DateTime.Now; } // v0.6.1: no stale UIA snapshot
             var m = UiaFinder.Match(_all, q);
             Matches.ItemsSource = m;
             Matches.Visibility = m.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -137,6 +137,7 @@ public partial class OverlayWindow : Window
         if (_sel == null || _fg == null || _acting) return;
         if (App.Current.Settings.Paused) { FindInfo.Text = "Aura на паузе."; return; }
         if (App.Current.Settings.IsExcluded(_fg.Process)) { FindInfo.Text = "Приложение в исключениях — не нажимаю."; return; }
+        if (App.Current.ActionCts != null) { FindInfo.Text = "Уже выполняется другое действие — дождись или Стоп."; return; } // v0.6.1
         var t = _sel;
         _acting = true;
         var cts = new CancellationTokenSource(); App.Current.ActionCts = cts;
@@ -146,6 +147,8 @@ public partial class OverlayWindow : Window
         try
         {
             await Task.Delay(1000, cts.Token);
+            if (App.Current.Settings.Paused || Actions.StopAll) throw new OperationCanceledException(); // v0.6.1: Пауза during «Делаю»
+            if (!Native.IsWindow(_fg.Hwnd)) { FindInfo.Text = "Окно закрылось — не нажимаю."; return; }
             ClearHighlight();
             Native.SetForegroundWindow(_fg.Hwnd);
             await Task.Delay(150, cts.Token);

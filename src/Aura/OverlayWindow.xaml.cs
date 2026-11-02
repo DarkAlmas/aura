@@ -254,7 +254,8 @@ public partial class OverlayWindow : Window
     {
         if (BtnList.SelectedItem is not LearnedButton b) { LearnInfo.Text = "Выбери кнопку в списке."; return; }
         if (_fg == null) { LearnInfo.Text = "Нет активного окна."; return; }
-        _acting = true; LearnInfo.Text = $"Делаю: «{b.Label}» через 1 с… (Стоп в индикаторе / Esc)";
+        if (_acting) return; // v0.9.25: no double run
+        _acting = true; Actions.StopAll = false; LearnInfo.Text = $"Делаю: «{b.Label}» через 1 с… (Стоп в индикаторе / Esc)";
         try { LearnInfo.Text = await Actions.Run(new Ai.Intent(b.Action == ClickAction.DoubleClick ? "DOUBLECLICK" : b.Action == ClickAction.RightClick ? "RIGHTCLICK" : "CLICK", b.Name), _fg); }
         finally { _acting = false; }
     }
@@ -263,6 +264,7 @@ public partial class OverlayWindow : Window
         if (_fg == null) return;
         var l = Buttons.List().Where(b => string.Equals(b.Process, _fg.Process, StringComparison.OrdinalIgnoreCase)).ToList();
         if (l.Count == 0) { LearnInfo.Text = $"Для {_fg.Process} нет выученных кнопок."; return; }
+        if (_acting) return;
         _acting = true; LearnInfo.Text = $"Серия: {l.Count} шт., каждая с «Делаю» 1 с.";
         try { var m = await Actions.RunSeries(l, _fg); if (!_closing) LearnInfo.Text = m; } finally { _acting = false; }
     }

@@ -103,6 +103,30 @@
           </StackPanel>
         </Expander>
       </Border>
+      <Border CornerRadius="12" Padding="12" Background="{StaticResource CardBg}" Margin="0,8,0,0">
+        <Expander x:Name="RuleExp" IsExpanded="False">
+          <Expander.Header><StackPanel Orientation="Horizontal"><TextBlock Text="💡" FontSize="16" Width="30"/><TextBlock Text="Правила: вижу → предложить" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource Text}"/></StackPanel></Expander.Header>
+          <StackPanel Margin="6,6,0,0">
+            <TextBlock FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Text="Только подсказки: сами ничего не нажимают. «▶» — с «Делаю» 1 с + Стоп."/>
+            <ListBox x:Name="RuleHits" Margin="0,6,0,0" MaxHeight="80" FontSize="12" Visibility="Collapsed"/>
+            <Button x:Name="RuleHitRun" Style="{StaticResource Ghost}" HorizontalAlignment="Left" Click="RuleHitRun_Click" Visibility="Collapsed"><TextBlock Text="▶ Сделать предложенное" FontWeight="SemiBold" Foreground="{StaticResource Accent}"/></Button>
+            <CheckBox x:Name="RulesChk" Margin="0,4,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="подсказывать в фоне (тост, раз в 60 с на правило)" Click="RulesChk_Click"/>
+            <Grid Margin="0,6,0,0">
+              <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
+              <TextBox x:Name="RuleWhen" Padding="4,2" FontSize="12" ToolTip="Вижу текст (кнопка/надпись в окне)"/>
+              <TextBlock Grid.Column="1" Text=" → " VerticalAlignment="Center" Foreground="{StaticResource Muted}"/>
+              <TextBox x:Name="RuleSuggest" Grid.Column="2" Padding="4,2" FontSize="12" ToolTip="Предложить нажать (имя кнопки)"/>
+            </Grid>
+            <WrapPanel Margin="0,4,0,0">
+              <CheckBox x:Name="RuleThisApp" IsChecked="True" FontSize="11" Foreground="{StaticResource Muted}" Content="только в этом приложении" VerticalAlignment="Center"/>
+              <Button Style="{StaticResource Ghost}" Click="RuleAdd_Click"><TextBlock Text="Добавить" Foreground="{StaticResource Accent}"/></Button>
+              <Button Style="{StaticResource Ghost}" Click="RuleToggle_Click"><TextBlock Text="вкл/выкл" Foreground="{StaticResource Muted}"/></Button>
+              <Button Style="{StaticResource Ghost}" Click="RuleDel_Click"><TextBlock Text="Удалить" Foreground="{StaticResource Muted}"/></Button>
+            </WrapPanel>
+            <ListBox x:Name="RuleList" Margin="0,4,0,0" MaxHeight="110" FontSize="12"/>
+          </StackPanel>
+        </Expander>
+      </Border>
       <Grid Margin="0,10,0,0">
         <Border CornerRadius="6" Background="#10FFFFFF" Padding="6,2" HorizontalAlignment="Left">
           <TextBlock x:Name="HotkeyHint" Text="Win+Shift+Z" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource Muted}"/></Border>

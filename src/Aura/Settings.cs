@@ -32,6 +32,8 @@ public sealed class Settings
     public int StepDelayMs { get; set; } = 800;
     public bool ClickSound { get; set; } = false;
     /// v0.5.2 profiles: apps where «действовать» stays silent even when ON.
+    /// v0.5.7: background rule hints (toast only, never clicks). OFF by default.
+    public bool RulesOptIn { get; set; } = false;
     public List<string> ActDisabledApps { get; set; } = new();
     public bool ActDisabled(string p) => ActDisabledApps.Exists(a => string.Equals(a, p, StringComparison.OrdinalIgnoreCase));
     /// «ИИ (сеть)» — the ONLY switch that allows network. OFF by default.

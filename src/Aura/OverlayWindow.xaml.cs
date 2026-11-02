@@ -33,6 +33,7 @@ public partial class OverlayWindow : Window
         if (fg != null) AppOffChk.Content = $"не действовать в {fg.Process}";
         DelayBox.Text = st.StepDelayMs.ToString(); SoundChk.IsChecked = st.ClickSound;
         if (Ai.History.Count > 0) AiReply.Text = HistText();
+        RulesChk.IsChecked = st.RulesOptIn; LoadRules(); _ = CheckRules();
         UnderText.Text = "🖱 Под курсором (" + App.Current.UnderCursorHotkey + ")";
         Status.Text = "v" + App.Version + " · " + Status.Text;
         Loaded += (_, _) => { var wa = SystemParameters.WorkArea; Left = wa.Right - ActualWidth - 8; Top = wa.Bottom - ActualHeight - 8; };
@@ -309,6 +310,39 @@ public partial class OverlayWindow : Window
         if (int.TryParse(DelayBox.Text, out var v)) { App.Current.Settings.StepDelayMs = Math.Clamp(v, 200, 10000); App.Current.Settings.Save(); }
         DelayBox.Text = App.Current.Settings.StepDelayMs.ToString();
     }
+    // ---- v0.5.7 rules (suggest only)
+    void LoadRules() { RuleList.ItemsSource = null; RuleList.ItemsSource = Rules.List().ToList(); }
+    async Task CheckRules()
+    {
+        try
+        {
+            if (_fg == null || App.Current.Settings.IsExcluded(_fg.Process) || !Rules.For(_fg.Process).Any()) return;
+            var uia = await Task.Run(() => UiaFinder.Enumerate(_fg.Hwnd));
+            var hits = Rules.Hits(_fg.Process, uia);
+            if (hits.Count == 0) return;
+            RuleHits.ItemsSource = hits; RuleHits.SelectedIndex = 0;
+            RuleHits.Visibility = RuleHitRun.Visibility = Visibility.Visible; RuleExp.IsExpanded = true;
+        }
+        catch { }
+    }
+    async void RuleHitRun_Click(object s, RoutedEventArgs e)
+    {
+        if (RuleHits.SelectedItem is not Rule r || _fg == null || _acting) return;
+        _acting = true; Actions.StopAll = false;
+        try { var lb = Buttons.ByName(r.Suggest, _fg.Process); var kind = lb?.Action == ClickAction.DoubleClick ? "DOUBLECLICK" : lb?.Action == ClickAction.RightClick ? "RIGHTCLICK" : "CLICK";
+              LearnInfo.Text = await Actions.Run(new Ai.Intent(kind, r.Suggest), _fg, guardLeft: true); }
+        finally { _acting = false; }
+    }
+    void RulesChk_Click(object s, RoutedEventArgs e) { App.Current.Settings.RulesOptIn = RulesChk.IsChecked == true; App.Current.Settings.Save(); Rules.Sync(); }
+    void RuleAdd_Click(object s, RoutedEventArgs e)
+    {
+        var w = RuleWhen.Text.Trim(); var g = RuleSuggest.Text.Trim();
+        if (w.Length == 0 || g.Length == 0) { RuleWhen.Focus(); return; }
+        Rules.Add(new Rule { When = w, Suggest = g, Process = RuleThisApp.IsChecked == true && _fg != null ? _fg.Process : "" });
+        RuleWhen.Text = RuleSuggest.Text = ""; LoadRules(); Rules.Sync();
+    }
+    void RuleToggle_Click(object s, RoutedEventArgs e) { if (RuleList.SelectedItem is Rule r) { r.Enabled = !r.Enabled; Rules.Save(); LoadRules(); Rules.Sync(); } }
+    void RuleDel_Click(object s, RoutedEventArgs e) { if (RuleList.SelectedItem is Rule r) { Rules.Remove(r); LoadRules(); Rules.Sync(); } }
     void AppOffChk_Click(object s, RoutedEventArgs e)
     {
         if (_fg == null) return; var l = App.Current.Settings.ActDisabledApps;

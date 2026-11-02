@@ -11,6 +11,7 @@ public partial class App : Application
     Mutex? _single;
     HotkeyHost? _hotkey, _hotkeyX;
     public string UnderCursorHotkey = "—";
+    public (Rule Rule, Native.WindowInfo Fg)? LastSuggestion;
     public static string Version => typeof(App).Assembly.GetName().Version?.ToString(3) ?? "?";
     Forms.NotifyIcon? _tray;
     Forms.ToolStripMenuItem? _pauseItem, _ocrItem, _actItem, _aiItem;
@@ -64,7 +65,7 @@ public partial class App : Application
         _tray.ContextMenuStrip = menu;
         _tray.MouseClick += (_, a) => { if (a.Button == Forms.MouseButtons.Left) RequestOverlay(); };
         SyncMenu();
-        Watcher.Sync();
+        Watcher.Sync(); Rules.Sync();
 
         _hotkey = new HotkeyHost();
         _hotkey.Pressed += RequestOverlay;
@@ -127,7 +128,7 @@ public partial class App : Application
         Settings.Paused = !Settings.Paused; Settings.Save(); SyncMenu();
         if (Settings.Paused) ActionCts?.Cancel();
         if (Settings.Paused) { Learning = false; _overlay?.SafeClose(); }
-        Watcher.Sync();
+        Watcher.Sync(); Rules.Sync();
     }
     void ToggleOcr() { Settings.ScreenCaptureOptIn = !Settings.ScreenCaptureOptIn; Settings.Save(); SyncMenu(); }
     public void SyncOcrMenu() => SyncMenu();

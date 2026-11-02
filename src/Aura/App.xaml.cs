@@ -42,7 +42,12 @@ public partial class App : Application
 
         _tray = new Forms.NotifyIcon { Text = "Aura — Win+Shift+Z", Icon = System.Drawing.SystemIcons.Information, Visible = true };
         _tray.BalloonTipClicked += (_, _) => OnBalloonClicked();
+        DispatcherUnhandledException += (_, ev) => { CrashLog(ev.Exception); ev.Handled = true; try { Actions.Stop(); Toast("Aura", "Ошибка — записал в crash.log, продолжаю."); } catch { } };
+        AppDomain.CurrentDomain.UnhandledException += (_, ev) => CrashLog(ev.ExceptionObject);
+        System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (_, ev) => { CrashLog(ev.Exception); ev.SetObserved(); };
         var menu = new Forms.ContextMenuStrip();
+        menu.Items.Add(new Forms.ToolStripMenuItem($"Aura {Version}") { Enabled = false });
+        menu.Items.Add("📄 Журнал ошибок", null, (_, _) => { var p = System.IO.Path.Combine(Aura.Settings.Dir, "crash.log"); if (System.IO.File.Exists(p)) OpenPath(p); else Toast("Aura", "Ошибок не было."); });
         var openItem = menu.Items.Add("Открыть (Win+Shift+Z)", null, (_, _) => RequestOverlay());
         _pauseItem = new Forms.ToolStripMenuItem("Пауза", null, (_, _) => TogglePause());
         _ocrItem = new Forms.ToolStripMenuItem("OCR если UIA не нашёл (opt-in)", null, (_, _) => ToggleOcr());
@@ -115,7 +120,32 @@ public partial class App : Application
     }
 
     /// Cancel source for the in-flight «Делаю» action; Pause/Stop/Esc cancel it.
-    public System.Threading.CancellationTokenSource? ActionCts;
+    // v0.8.3: Esc cancels «Делаю» from anywhere — RegisterHotKey(Esc) ONLY while an action runs (no hooks), released right after
+    System.Threading.CancellationTokenSource? _actionCts; HotkeyHost? _esc;
+    public System.Threading.CancellationTokenSource? ActionCts
+    {
+        get => _actionCts;
+        set { _actionCts = value; Dispatcher.BeginInvoke(new Action(SyncEsc)); }
+    }
+    void SyncEsc()
+    {
+        try
+        {
+            if (_actionCts != null && _esc == null) { _esc = new HotkeyHost(0xA0E, new[] { (0u, 0x1Bu, "Esc") }); _esc.Pressed += () => Actions.Stop(); }
+            else if (_actionCts == null && _esc != null) { _esc.Dispose(); _esc = null; }
+        }
+        catch { }
+    }
+    static void CrashLog(object? ex)
+    {
+        try
+        {
+            var p = System.IO.Path.Combine(Aura.Settings.Dir, "crash.log"); System.IO.Directory.CreateDirectory(Aura.Settings.Dir);
+            if (System.IO.File.Exists(p) && new System.IO.FileInfo(p).Length > 256 * 1024) System.IO.File.Delete(p); // cap 256 KB
+            System.IO.File.AppendAllText(p, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Aura {Version}\n{ex}\n\n"); // text only — never screenshots
+        }
+        catch { }
+    }
     public string LastApp = "—";
     /// «Учусь» — runtime only, visible (red dot). While ON, every Aura «Нажать» also remembers the button. No hooks.
     public bool Learning;

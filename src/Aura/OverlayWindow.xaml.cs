@@ -393,6 +393,11 @@ public partial class OverlayWindow : Window
         }
         catch { }
     }
+    void RuleSuggest_DropDown(object s, EventArgs e)
+    {
+        RuleSuggest.Items.Clear();
+        foreach (var n in Buttons.List().Where(b => _fg == null || string.Equals(b.Process, _fg.Process, StringComparison.OrdinalIgnoreCase)).Select(b => b.Name).Where(n => n.Length > 0).Distinct()) RuleSuggest.Items.Add(n);
+    }
     void RulePreset_Click(object s, RoutedEventArgs e) { if (s is FrameworkElement f && f.Tag is string t && t.Split('|') is { Length: 2 } p) { RuleWhen.Text = p[0]; RuleSuggest.Text = p[1]; RuleSuggest.Focus(); } }
     void RuleAdd_Click(object s, RoutedEventArgs e)
     {

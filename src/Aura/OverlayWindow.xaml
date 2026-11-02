@@ -122,7 +122,7 @@
               <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
               <ComboBox x:Name="RuleWhen" IsEditable="True" FontSize="12" ToolTip="Вижу текст (кнопка/надпись в окне) — впиши или выбери из текущего окна" DropDownOpened="RuleWhen_DropDown"/>
               <TextBlock Grid.Column="1" Text=" → " VerticalAlignment="Center" Foreground="{StaticResource Muted}"/>
-              <TextBox x:Name="RuleSuggest" Grid.Column="2" Padding="4,2" FontSize="12" ToolTip="Предложить нажать (имя кнопки)"/>
+              <ComboBox x:Name="RuleSuggest" Grid.Column="2" IsEditable="True" FontSize="12" ToolTip="Предложить нажать (имя кнопки) — список: выученные кнопки этого приложения" DropDownOpened="RuleSuggest_DropDown"/>
             </Grid>
             <WrapPanel Margin="0,2,0,0">
               <TextBlock Text="Шаблоны:" FontSize="11" VerticalAlignment="Center" Foreground="{StaticResource Muted}"/>

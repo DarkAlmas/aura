@@ -34,6 +34,7 @@ public static class Native
     /// v0.5.3 high-DPI: physical pixels (same space as UIA BoundingRectangle / SendInput / screen capture), fallback to GetCursorPos.
     public static bool CursorPhysical(out POINT p) => GetPhysicalCursorPos(out p) || GetCursorPos(out p);
     [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(POINT p);
+    [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h);
     [DllImport("user32.dll")] public static extern IntPtr GetAncestor(IntPtr h, uint flags);
     [DllImport("user32.dll")] static extern uint GetDoubleClickTime();
 

@@ -78,7 +78,7 @@ public static class OcrFinder
         var want = names.Select(Norm).Where(n => n.Length > 0).ToHashSet();
         if (want.Count == 0) return new();
         var engine = CreateEngine(); if (engine == null) return null;
-        if (!GetWindowRect(hwnd, out var wr)) return new();
+        if (Native.IsIconic(hwnd) || !GetWindowRect(hwnd, out var wr)) return new(); // v0.9.28: minimized → nothing to read (no capture of whatever is at -32000)
         int w = Math.Min(wr.R - wr.L, 8000), h = Math.Min(wr.B - wr.T, 8000);
         if (w < 8 || h < 8) return new();
         var (result, S) = await Recognize(engine, wr.L, wr.T, w, h);
@@ -124,7 +124,7 @@ public static class OcrFinder
     {
         var engine = CreateEngine();
         if (engine == null) return null;
-        if (!GetWindowRect(hwnd, out var wr)) return new();
+        if (Native.IsIconic(hwnd) || !GetWindowRect(hwnd, out var wr)) return new(); // v0.9.28: minimized → nothing to read (no capture of whatever is at -32000)
         int w = Math.Min(wr.R - wr.L, 8000), h = Math.Min(wr.B - wr.T, 8000);
         if (w < 8 || h < 8) return new();
 

@@ -83,7 +83,7 @@ public static class Templates
                 for (int y = 0; y <= h - th0; y++) for (int x = 0; x <= w - tw0; x++) { var v = Sad(iF0, iw0, tF0, tw0, th0, x, y, b0); if (v < b0) { b0 = v; x0 = x; y0 = y; } }
                 if (b0 != long.MaxValue && b0 / (double)(tw0 * th0) <= 18) return new System.Windows.Rect(L + x0, T + y0, tw0, th0);
             }
-            if (!File.Exists(PathOf(id)) || !GetWindowRect(hwnd, out var wr)) return null;
+            if (!File.Exists(PathOf(id)) || Native.IsIconic(hwnd) || !GetWindowRect(hwnd, out var wr)) return null;
             int W = Math.Min(wr.R - wr.L, 4000), H = Math.Min(wr.B - wr.T, 3000);
             using var tb = new Bitmap(PathOf(id));
             using var tpl = new Bitmap(tb.Width, tb.Height, PixelFormat.Format32bppArgb);

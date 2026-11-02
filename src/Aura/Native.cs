@@ -35,6 +35,7 @@ public static class Native
     public static bool CursorPhysical(out POINT p) => GetPhysicalCursorPos(out p) || GetCursorPos(out p);
     [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(POINT p);
     [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h);
+    public static int PidOf(IntPtr h) { GetWindowThreadProcessId(h, out var p); return (int)p; }
     [DllImport("user32.dll")] public static extern IntPtr GetAncestor(IntPtr h, uint flags);
     [DllImport("user32.dll")] static extern uint GetDoubleClickTime();
 

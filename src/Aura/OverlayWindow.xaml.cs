@@ -164,7 +164,10 @@ public partial class OverlayWindow : Window
             Native.SetForegroundWindow(_fg.Hwnd);
             await Task.Delay(150, cts.Token);
             var act = CurAct;
-            var how = await Task.Run(() => UiaFinder.Click(t, act), cts.Token);
+            if (App.Current.Settings.Paused || Actions.StopAll) throw new OperationCanceledException();
+            int pid = _fg.Pid;
+            var how = await Task.Run(() => UiaFinder.Click(t, act, pid), cts.Token);
+            if (how.StartsWith("не нажал")) { FindInfo.Text = $"«{t.Label}»: {how}."; App.Current.Toast("Aura", FindInfo.Text); return; } // v0.9.29
             if (App.Current.Settings.ClickSound) System.Media.SystemSounds.Asterisk.Play();
             var learned = App.Current.Learning ? Buttons.Remember(_fg.Process, t, act, App.Current.Settings.SaveTemplates) : null;
             App.Current.Toast("Aura", $"Нажал «{t.Label}» ({how})." + (learned != null ? $" Запомнил: {learned.Label}" : ""));

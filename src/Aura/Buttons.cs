@@ -153,7 +153,9 @@ public static class Buttons
             if (hwnd != IntPtr.Zero && Native.GetForegroundWindow() != hwnd) { if (requireForeground) return null; Native.SetForegroundWindow(hwnd); await Task.Delay(150, cts.Token); }
             try { hl?.Close(); hl = null; } catch { }
             if (cts.IsCancellationRequested || App.Current.Settings.Paused) throw new OperationCanceledException(); // v0.9.26: last check right before the click
-            var how = await Task.Run(() => UiaFinder.Click(hit, act));
+            if (hwnd != IntPtr.Zero && !Native.IsWindow(hwnd)) { App.Current.Toast("Aura", $"Окно закрылось — «{hit.Label}» не нажимаю."); return null; }
+            int pid = hwnd == IntPtr.Zero ? 0 : Native.PidOf(hwnd);
+            var how = await Task.Run(() => UiaFinder.Click(hit, act, pid));
             if (App.Current.Settings.ClickSound && !how.StartsWith("не нажал")) System.Media.SystemSounds.Asterisk.Play();
             App.Current.Toast("Aura", how.StartsWith("не нажал") ? $"«{hit.Label}»: {how}." : $"Нажал «{hit.Label}» ({how})."); // v0.9.13
             return how;

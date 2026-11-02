@@ -138,7 +138,8 @@ public static class Buttons
     public static async Task<string?> DoWithCountdown(UiaFinder.Target hit, ClickAction act, IntPtr hwnd, bool requireForeground = false, bool guardLeft = false)
     {
         var st = App.Current.Settings;
-        if (st.Paused || App.Current.ActionCts != null) return null;
+        if (st.Paused) return null;
+        if (App.Current.ActionCts != null) { App.Current.Toast("Aura", $"Уже выполняю другое действие — «{hit.Label}» не нажимаю."); return null; } // v0.9.26
         var cts = new CancellationTokenSource(); App.Current.ActionCts = cts;
         TargetHighlight? hl = null; // v0.9.2: frame what will be pressed during the 1 s countdown
         try
@@ -151,8 +152,9 @@ public static class Buttons
             { App.Current.Toast("Aura", $"Ты ушёл из окна — «{hit.Label}» не нажимаю."); return null; }
             if (hwnd != IntPtr.Zero && Native.GetForegroundWindow() != hwnd) { if (requireForeground) return null; Native.SetForegroundWindow(hwnd); await Task.Delay(150, cts.Token); }
             try { hl?.Close(); hl = null; } catch { }
+            if (cts.IsCancellationRequested || App.Current.Settings.Paused) throw new OperationCanceledException(); // v0.9.26: last check right before the click
             var how = await Task.Run(() => UiaFinder.Click(hit, act));
-            if (App.Current.Settings.ClickSound) System.Media.SystemSounds.Asterisk.Play();
+            if (App.Current.Settings.ClickSound && !how.StartsWith("не нажал")) System.Media.SystemSounds.Asterisk.Play();
             App.Current.Toast("Aura", how.StartsWith("не нажал") ? $"«{hit.Label}»: {how}." : $"Нажал «{hit.Label}» ({how})."); // v0.9.13
             return how;
         }

@@ -22,7 +22,7 @@
           </Grid>
           <ListBox x:Name="Matches" Margin="36,6,0,0" MaxHeight="140" FontSize="12" Visibility="Collapsed" SelectionChanged="Matches_SelectionChanged"/>
           <TextBlock x:Name="FindInfo" Margin="36,6,0,0" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Muted}" Text="Ищу через UI Automation в активном окне. Скрин не снимаю."/>
-          <CheckBox x:Name="OcrChk" Margin="36,6,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="OCR если UIA не нашёл (снимок только этого окна, в памяти)" Click="OcrChk_Click"/>
+          <CheckBox x:Name="OcrChk" Margin="36,6,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="OCR если UIA не нашёл (снимок только этого окна, в памяти)"/>
           <WrapPanel Margin="36,6,0,0">
             <Button x:Name="PressBtn" Style="{StaticResource Ghost}" Click="Press_Click" IsEnabled="False"><TextBlock Text="Нажать" FontWeight="SemiBold" Foreground="{StaticResource Accent}"/></Button>
             <Button x:Name="StopBtn" Style="{StaticResource Ghost}" Click="Stop_Click" Visibility="Collapsed"><TextBlock Text="Стоп" Foreground="OrangeRed"/></Button>
@@ -33,7 +33,7 @@
           </WrapPanel>
           <WrapPanel Margin="36,6,0,0">
             <Button Style="{StaticResource Ghost}" Click="UnderCursor_Click" ToolTip="Без хуков: через 3 с прочитаю кнопку под мышью (UIA, или OCR рядом с курсором) и запомню. Хоткей — сразу."><TextBlock x:Name="UnderText" Text="🖱 Под курсором" Foreground="{StaticResource Accent}"/></Button>
-            <CheckBox x:Name="TplChk" Margin="8,4,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="запомнить картинку" ToolTip="Сохраню маленький PNG кнопки (≤120×60) в %AppData%\Aura\templates — для поиска по картинке, если нет ни UIA, ни текста." Click="TplChk_Click"/>
+            <CheckBox x:Name="TplChk" Margin="8,4,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="запомнить картинку" ToolTip="Сохраню маленький PNG кнопки (≤120×60) в %AppData%\Aura\templates — для поиска по картинке, если нет ни UIA, ни текста."/>
           </WrapPanel>
         </StackPanel>
       </Border>
@@ -46,8 +46,8 @@
             <Button x:Name="LearnBtn" Style="{StaticResource Ghost}" Click="Learn_Click"><TextBlock x:Name="LearnBtnText" Text="● Учусь" Foreground="{StaticResource Accent}"/></Button>
             <CheckBox x:Name="ActChk" Margin="8,4,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="действовать (сам жму выученные)" ToolTip="Выкл. по умолчанию. Каждые 2 с читаю UIA активного окна; совпадение → «Делаю» 1 с со Стоп/Esc/Пауза → клик." Checked="ActChk_Changed" Unchecked="ActChk_Changed"/>
           </WrapPanel>
-          <CheckBox x:Name="OnlyAppChk" Margin="36,4,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="только это приложение" Click="OnlyAppChk_Click"/>
-          <CheckBox x:Name="AppOffChk" Margin="36,4,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="не действовать в этом приложении" Click="AppOffChk_Click"/>
+          <CheckBox x:Name="OnlyAppChk" Margin="36,4,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="только это приложение"/>
+          <CheckBox x:Name="AppOffChk" Margin="36,4,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="не действовать в этом приложении"/>
           <ListBox x:Name="BtnList" Margin="36,6,0,0" MaxHeight="140" FontSize="12" Visibility="Collapsed"/>
           <WrapPanel x:Name="BtnBar" Margin="36,6,0,0" Visibility="Collapsed">
             <Button Style="{StaticResource Ghost}" Click="BtnDelete_Click"><TextBlock Text="Удалить" Foreground="{StaticResource Muted}"/></Button>
@@ -64,8 +64,8 @@
           <Expander.Header><StackPanel Orientation="Horizontal"><TextBlock Text="🤖" FontSize="16" Width="30"/><TextBlock Text="ИИ — скажи что сделать" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource Text}"/></StackPanel></Expander.Header>
           <StackPanel Margin="6,6,0,0">
             <WrapPanel>
-              <CheckBox x:Name="AiChk" FontSize="11" Foreground="{StaticResource Muted}" Content="ИИ (сеть)" ToolTip="Выкл. по умолчанию. Только при «Спросить»: имя приложения, заголовок, имена выученных кнопок и твой запрос → ИИ (как в circuit: бесплатный Groq-прокси или Ollama)." Click="AiChk_Click"/>
-              <CheckBox x:Name="AiTextChk" Margin="8,0,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="приложить текст окна (OCR)" Click="AiChk_Click"/>
+              <CheckBox x:Name="AiChk" FontSize="11" Foreground="{StaticResource Muted}" Content="ИИ (сеть)" ToolTip="Выкл. по умолчанию. Только при «Спросить»: имя приложения, заголовок, имена выученных кнопок и твой запрос → ИИ (как в circuit: бесплатный Groq-прокси или Ollama)."/>
+              <CheckBox x:Name="AiTextChk" Margin="8,0,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="приложить текст окна (OCR)"/>
               <ComboBox x:Name="AiBackend" Margin="8,-2,0,0" FontSize="11" Width="96" SelectionChanged="AiBackend_Changed"><ComboBoxItem Content="Groq-прокси"/><ComboBoxItem Content="Ollama"/><ComboBoxItem Content="свой URL"/></ComboBox>
             </WrapPanel>
             <Grid Margin="0,6,0,0">
@@ -91,11 +91,11 @@
         <Expander x:Name="StartExp" IsExpanded="False">
           <Expander.Header><StackPanel Orientation="Horizontal"><TextBlock Text="⚡" FontSize="16" Width="30"/><TextBlock Text="При старте Aura" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource Text}"/></StackPanel></Expander.Header>
           <StackPanel Margin="6,6,0,0">
-            <CheckBox x:Name="StartChk" FontSize="11" Foreground="{StaticResource Muted}" Content="выполнять при запуске Aura (клики — с «Делаю» 1 с)" Click="StartChk_Click"/>
+            <CheckBox x:Name="StartChk" FontSize="11" Foreground="{StaticResource Muted}" Content="выполнять при запуске Aura (клики — с «Делаю» 1 с)"/>
             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
               <TextBlock Text="Пауза между шагами (серия/старт/ИИ), мс:" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center"/>
               <TextBox x:Name="DelayBox" Width="56" Margin="6,0,0,0" Padding="2" FontSize="11" LostFocus="DelayBox_LostFocus"/>
-              <CheckBox x:Name="SoundChk" Margin="10,0,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="звук клика" Click="SoundChk_Click"/>
+              <CheckBox x:Name="SoundChk" Margin="10,0,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="звук клика"/>
             </StackPanel>
             <Grid Margin="0,6,0,0">
               <ComboBox x:Name="StartKind" Width="96" HorizontalAlignment="Left" FontSize="11" SelectedIndex="0"><ComboBoxItem Content="Запустить"/><ComboBoxItem Content="Открыть URL"/><ComboBoxItem Content="Нажать"/><ComboBoxItem Content="Ждать, с"/></ComboBox>
@@ -117,7 +117,7 @@
             <TextBlock FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Text="Только подсказки: сами ничего не нажимают. «▶» — с «Делаю» 1 с + Стоп."/>
             <ListBox x:Name="RuleHits" Margin="0,6,0,0" MaxHeight="80" FontSize="12" Visibility="Collapsed"/>
             <Button x:Name="RuleHitRun" Style="{StaticResource Ghost}" HorizontalAlignment="Left" Click="RuleHitRun_Click" Visibility="Collapsed"><TextBlock Text="▶ Сделать предложенное" FontWeight="SemiBold" Foreground="{StaticResource Accent}"/></Button>
-            <CheckBox x:Name="RulesChk" Margin="0,4,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="подсказывать в фоне (тост, раз в 60 с на правило)" Click="RulesChk_Click"/>
+            <CheckBox x:Name="RulesChk" Margin="0,4,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="подсказывать в фоне (тост, раз в 60 с на правило)"/>
             <Grid Margin="0,6,0,0">
               <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
               <TextBox x:Name="RuleWhen" Padding="4,2" FontSize="12" ToolTip="Вижу текст (кнопка/надпись в окне)"/>

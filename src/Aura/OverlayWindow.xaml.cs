@@ -35,6 +35,16 @@ public partial class OverlayWindow : Window
         if (Ai.History.Count > 0) AiReply.Text = HistText();
         LoadNt(); if (fg != null) NtCurText.Text = "← " + fg.Process;
         RulesChk.IsChecked = st.RulesOptIn; LoadRules(); _ = CheckRules();
+        // v0.6.6: Checked/Unchecked (not Click) so UIA TogglePattern (Formal / screen readers) runs the same handlers as a mouse click. Subscribed after initial IsChecked loads.
+        OcrChk.Checked += OcrChk_Click; OcrChk.Unchecked += OcrChk_Click;
+        TplChk.Checked += TplChk_Click; TplChk.Unchecked += TplChk_Click;
+        OnlyAppChk.Checked += OnlyAppChk_Click; OnlyAppChk.Unchecked += OnlyAppChk_Click;
+        AppOffChk.Checked += AppOffChk_Click; AppOffChk.Unchecked += AppOffChk_Click;
+        AiChk.Checked += AiChk_Click; AiChk.Unchecked += AiChk_Click;
+        AiTextChk.Checked += AiChk_Click; AiTextChk.Unchecked += AiChk_Click;
+        StartChk.Checked += StartChk_Click; StartChk.Unchecked += StartChk_Click;
+        SoundChk.Checked += SoundChk_Click; SoundChk.Unchecked += SoundChk_Click;
+        RulesChk.Checked += RulesChk_Click; RulesChk.Unchecked += RulesChk_Click;
         UnderText.Text = "🖱 Под курсором (" + App.Current.UnderCursorHotkey + ")";
         Status.Text = "v" + App.Version + " · " + Status.Text;
         Loaded += (_, _) => { var wa = SystemParameters.WorkArea; Left = wa.Right - ActualWidth - 8; Top = wa.Bottom - ActualHeight - 8; };

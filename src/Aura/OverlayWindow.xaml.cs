@@ -274,10 +274,14 @@ public partial class OverlayWindow : Window
     void BtnStartup_Click(object s, RoutedEventArgs e)
     {
         if (BtnList.SelectedItem is not LearnedButton b) { LearnInfo.Text = "Выбери кнопку в списке."; return; }
-        App.Current.Settings.StartupActions.Add(new StartupAction { Kind = "RunButton", Arg = b.Name }); App.Current.Settings.Save(); LoadStartup();
+        var sa = App.Current.Settings.StartupActions;
+        if (sa.Count >= 20) { LearnInfo.Text = "В «При старте» уже 20 действий — удали лишнее."; return; } // v0.9.38
+        if (sa.Exists(x => x.Kind == "RunButton" && x.Arg == b.Name)) { LearnInfo.Text = $"«{b.Label}» уже есть в «При старте»."; StartExp.IsExpanded = true; return; }
+        sa.Add(new StartupAction { Kind = "RunButton", Arg = b.Name }); App.Current.Settings.Save(); LoadStartup();
         LearnInfo.Text = $"«{b.Label}» добавлена в «При старте»."; StartExp.IsExpanded = true;
     }
 
+    void StartInfoLimit() => LearnInfo.Text = "В «При старте» уже 20 действий — удали лишнее."; // v0.9.38
     void AiChk_Click(object s, RoutedEventArgs e)
     {
         var st = App.Current.Settings; st.AiOptIn = AiChk.IsChecked == true; st.AiAttachText = AiTextChk.IsChecked == true; st.Save(); App.Current.SyncOcrMenu();
@@ -447,6 +451,8 @@ public partial class OverlayWindow : Window
         if (kind == "LaunchExe" && Actions.LaunchProblem(arg, false) is { } bad) { StartArg.ToolTip = bad; StartArg.Focus(); App.Current.Toast("Aura", bad); return; }
         if (kind == "OpenUrl" && !Actions.UrlOk(arg)) { App.Current.Toast("Aura", "Только http/https ссылки."); StartArg.Focus(); return; }
         if (kind == "Wait" && !int.TryParse(arg, out _)) { App.Current.Toast("Aura", "Ожидание — число секунд (1–30)."); StartArg.Focus(); return; }
+        if (App.Current.Settings.StartupActions.Count >= 20) { StartInfoLimit(); return; }
+        if (App.Current.Settings.StartupActions.Exists(x => x.Kind == kind && string.Equals(x.Arg, arg, StringComparison.OrdinalIgnoreCase))) { StartArg.Text = ""; return; }
         App.Current.Settings.StartupActions.Add(new StartupAction { Kind = kind, Arg = arg }); App.Current.Settings.Save(); StartArg.Text = ""; LoadStartup();
     }
     void StartDel_Click(object s, RoutedEventArgs e)

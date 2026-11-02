@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -14,7 +15,8 @@ public static class Templates
     [StructLayout(LayoutKind.Sequential)] struct RECT { public int L, T, R, B; }
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out RECT r);
     public static string Dir => Path.Combine(Settings.Dir, "templates");
-    static string PathOf(string id) => Path.Combine(Dir, id + ".png");
+    // v0.9.7: id must be plain [0-9a-zA-Z] — a hand-edited buttons.json can never point outside templates\
+    static string PathOf(string id) => Path.Combine(Dir, (id.Length is > 0 and <= 40 && id.All(char.IsAsciiLetterOrDigit) ? id : "invalid") + ".png");
 
     public static bool Save(string id, System.Windows.Rect r)
     {

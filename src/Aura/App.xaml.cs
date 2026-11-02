@@ -47,6 +47,7 @@ public partial class App : Application
         System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (_, ev) => { CrashLog(ev.Exception); ev.SetObserved(); };
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add(new Forms.ToolStripMenuItem($"Aura {Version}") { Enabled = false });
+        menu.Items.Add("📁 Папка данных Aura", null, (_, _) => { System.IO.Directory.CreateDirectory(Aura.Settings.Dir); OpenPath(Aura.Settings.Dir); });
         menu.Items.Add("📄 Журнал ошибок", null, (_, _) => { var p = System.IO.Path.Combine(Aura.Settings.Dir, "crash.log"); if (System.IO.File.Exists(p)) OpenPath(p); else Toast("Aura", "Ошибок не было."); });
         var openItem = menu.Items.Add("Открыть (Win+Shift+Z)", null, (_, _) => RequestOverlay());
         _pauseItem = new Forms.ToolStripMenuItem("Пауза", null, (_, _) => TogglePause());
@@ -125,6 +126,7 @@ public partial class App : Application
         // v0.8.6: global Pause toggle via RegisterHotKey (no hooks)
         _hotkeyP = new HotkeyHost(0xA0C, new[] { (Native.MOD_WIN | Native.MOD_SHIFT, 0x50u, "Win+Shift+P"), (Native.MOD_WIN | Native.MOD_ALT, 0x50u, "Win+Alt+P") });
         if (_hotkeyP.Registered) { _pauseItem!.Text = $"Пауза ({_hotkeyP.Combo})"; _hotkeyP.Pressed += () => Dispatcher.BeginInvoke(new Action(() => { TogglePause(); Toast("Aura", Settings.Paused ? "Пауза: ничего не смотрю и не жму." : "Снова смотрю."); RefreshLook(); })); }
+        Dispatcher.BeginInvoke(new Action(() => { if (Aura.Settings.Recovered.Count > 0) Toast("Aura", $"Файл повреждён: {string.Join(", ", Aura.Settings.Recovered)} — восстановил из резервной копии (.broken сохранён)."); }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         if (Array.Exists(e.Args, a => a == "--open")) RequestOverlay();
         _ = Actions.RunStartup();
     }

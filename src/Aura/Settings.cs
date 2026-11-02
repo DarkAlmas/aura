@@ -76,6 +76,7 @@ public sealed class Settings
     static string FilePath => Path.Combine(Dir, "settings.json");
     static readonly JsonSerializerOptions Opt = new() { WriteIndented = true, DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull };
 
+    public static readonly System.Collections.Generic.List<string> Recovered = new(); // v0.8.7: files restored from .bak this session
     // v0.7.1 crash-safe IO: write .tmp then atomic replace (keeps .bak); a broken file is kept as .broken and .bak is used — never silently wiped.
     public static void AtomicWrite(string path, string text)
     {
@@ -91,7 +92,7 @@ public sealed class Settings
         {
             if (!File.Exists(p)) continue;
             try { var r = JsonSerializer.Deserialize<T>(File.ReadAllText(p), o); if (r != null) return r; }
-            catch { if (p == path) try { File.Copy(path, path + ".broken", true); } catch { } }
+            catch { if (p == path) { try { File.Copy(path, path + ".broken", true); } catch { } Recovered.Add(Path.GetFileName(path)); } }
         }
         return null;
     }

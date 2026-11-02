@@ -78,6 +78,18 @@ public static class Buttons
         Save(); return b;
     }
     public static void Delete(LearnedButton b) { Templates.Delete(b.Id); List().RemoveAll(x => x.Same(b)); Save(); }
+    /// v0.5.4: export/import learned buttons as JSON (names, actions, positions only — no images, no screenshots).
+    public static int Export(string path) { File.WriteAllText(path, JsonSerializer.Serialize(List().Select(b => { var c = JsonSerializer.Deserialize<LearnedButton>(JsonSerializer.Serialize(b, Opt), Opt)!; c.HasTemplate = false; return c; }).ToList(), Opt)); return List().Count; }
+    public static int Import(string path)
+    {
+        var src = JsonSerializer.Deserialize<List<LearnedButton>>(File.ReadAllText(path), Opt) ?? new(); int n = 0;
+        foreach (var b in src.Where(b => !string.IsNullOrWhiteSpace(b.Name) && !string.IsNullOrWhiteSpace(b.Process)))
+        {
+            if (List().Any(x => x.Same(b))) continue;
+            b.HasTemplate = false; b.Id = Guid.NewGuid().ToString("N")[..12]; List().Add(b); n++;
+        }
+        Save(); return n;
+    }
     public static void Clear() { foreach (var b in List()) Templates.Delete(b.Id); List().Clear(); Save(); }
     public static void Update() => Save();
     public static LearnedButton? ByName(string name, string? process = null) => List().FirstOrDefault(b =>

@@ -47,6 +47,16 @@ public partial class App : Application
         _aiItem = new Forms.ToolStripMenuItem("ИИ (сеть, opt-in)", null, (_, _) => { Settings.AiOptIn = !Settings.AiOptIn; Settings.Save(); SyncMenu(); });
         menu.Items.Add(_pauseItem); menu.Items.Add(_ocrItem); menu.Items.Add(_actItem); menu.Items.Add(_aiItem);
         menu.Items.Add("Запомнить под курсором (через 3 с)", null, (_, _) => RememberUnderCursor(3));
+        menu.Items.Add("Экспорт кнопок…", null, (_, _) =>
+        {
+            var d = new Microsoft.Win32.SaveFileDialog { FileName = "aura-buttons.json", Filter = "JSON|*.json" };
+            if (d.ShowDialog() == true) try { Toast("Aura", $"Экспортировано: {Buttons.Export(d.FileName)} (без картинок)."); } catch (Exception ex) { Toast("Aura", "Ошибка экспорта: " + ex.Message); }
+        });
+        menu.Items.Add("Импорт кнопок…", null, (_, _) =>
+        {
+            var d = new Microsoft.Win32.OpenFileDialog { Filter = "JSON|*.json" };
+            if (d.ShowDialog() == true) try { Toast("Aura", $"Импортировано новых: {Buttons.Import(d.FileName)}."); _overlay?.Reload(); } catch (Exception ex) { Toast("Aura", "Ошибка импорта: " + ex.Message); }
+        });
         menu.Items.Add("Настройки (settings.json)", null, (_, _) => OpenPath(Settings.Dir));
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Выход", null, (_, _) => Quit());

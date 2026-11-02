@@ -277,7 +277,17 @@ public partial class App : Application
     public async void RememberUnderCursor(int delaySec)
     {
         if (Settings.Paused) { Toast("Aura", "Пауза — не учусь."); return; }
-        if (delaySec > 0) { Toast("Aura · Под курсором", $"Наведи мышь на кнопку — запомню через {delaySec} с."); await System.Threading.Tasks.Task.Delay(delaySec * 1000); }
+        if (delaySec > 0) { Toast("Aura · Под курсором", $"Наведи мышь на кнопку — запомню через {delaySec} с."); 
+            // v0.8.8: visible countdown in the indicator; Стоп/Esc/Пауза cancel it
+            if (ActionCts != null) return;
+            var cts = new System.Threading.CancellationTokenSource(); ActionCts = cts;
+            try
+            {
+                for (int i = delaySec; i > 0; i--) { Look.SetDoing($"Запомню через {i} с · Esc — отмена", stoppable: true); Look.Show(); await System.Threading.Tasks.Task.Delay(1000, cts.Token); }
+            }
+            catch (OperationCanceledException) { Toast("Aura", "Запоминание отменено."); return; }
+            finally { if (ReferenceEquals(ActionCts, cts)) ActionCts = null; RefreshLook(); }
+        }
         if (Settings.Paused) { Toast("Aura", "Пауза — не учусь."); return; } // v0.6.1: paused during the 3 s wait
         if (!Native.CursorPhysical(out var p)) return;
         var w = Native.WindowAt(p);

@@ -148,6 +148,7 @@ public static class Buttons
             App.Current.Look.SetDoing(hit.Label + (act == ClickAction.DoubleClick ? " ×2" : act == ClickAction.RightClick ? " (ПКМ)" : ""), stoppable: true); App.Current.Look.Show();
             await Task.Delay(1000, cts.Token);
             if (App.Current.Settings.Paused) throw new OperationCanceledException();
+            if (requireForeground && Native.IdleMs() < 950) { App.Current.Toast("Aura", $"Ты работал во время «Делаю» — «{hit.Label}» не нажимаю."); return null; } // v0.9.31: auto-press yields to the user
             if (guardLeft && hwnd != IntPtr.Zero && !Native.ForegroundIsTargetOrAura(hwnd))
             { App.Current.Toast("Aura", $"Ты ушёл из окна — «{hit.Label}» не нажимаю."); return null; }
             if (hwnd != IntPtr.Zero && Native.GetForegroundWindow() != hwnd) { if (requireForeground) return null; Native.SetForegroundWindow(hwnd); await Task.Delay(150, cts.Token); }

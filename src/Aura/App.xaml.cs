@@ -170,8 +170,18 @@ public partial class App : Application
     public void TrayHint(string t)
     {
         if (_tray == null) return; var txt = "Aura · " + t; _tray.Text = txt.Length > 63 ? txt[..63] : txt;
-        var tm = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(30) }; // v0.7.5: hint fades back to the normal tooltip
-        tm.Tick += (_, _) => { tm.Stop(); if (_tray != null && _tray.Text.StartsWith("Aura · ")) _tray.Text = $"Aura — {_combo}"; }; tm.Start();
+        RestartHintFade();
+    }
+    // v0.8.0: one shared fade timer — an older hint's timer no longer wipes a newer hint early; also clears the 💡 in the indicator
+    System.Windows.Threading.DispatcherTimer? _fade;
+    void RestartHintFade()
+    {
+        if (_fade == null)
+        {
+            _fade = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(31) };
+            _fade.Tick += (_, _) => { _fade!.Stop(); if (_tray != null && _tray.Text.StartsWith("Aura · ")) _tray.Text = $"Aura — {_combo}"; RefreshLook(); };
+        }
+        _fade.Stop(); _fade.Start();
     }
     // v0.7.2: clicking a rule-hint balloon = the user's explicit OK → bring that window back and press via «Делаю» 1 с + Стоп (never without the click)
     DateTime _hintAt = DateTime.MinValue;
@@ -187,7 +197,7 @@ public partial class App : Application
         if (fresh) await RunLastSuggestion();
     }
     DateTime _suggAt = DateTime.MinValue;
-    public void NoteSuggestion() { _suggAt = DateTime.Now; RefreshLook(); }
+    public void NoteSuggestion() { _suggAt = DateTime.Now; RefreshLook(); RestartHintFade(); }
     public DateTime SuggAt => _suggAt;
     // v0.7.7: also from tray «▶ Последняя подсказка» (explicit click, within 5 min)
     public async System.Threading.Tasks.Task RunLastSuggestion()

@@ -83,6 +83,26 @@ public static class Buttons
         }
         Save(); return b;
     }
+    /// v0.9.9 startup hygiene: OCR buttons hold no image; flags match files on disk; orphan PNGs (button forgotten) are removed.
+    public static void TemplateHygiene()
+    {
+        try
+        {
+            bool dirty = false;
+            foreach (var b in List())
+            {
+                if (b.Ocr && (b.HasTemplate || Templates.Exists(b.Id))) { Templates.Delete(b.Id); b.HasTemplate = false; dirty = true; }
+                else if (b.HasTemplate && !Templates.Exists(b.Id)) { b.HasTemplate = false; dirty = true; }
+            }
+            if (Directory.Exists(Templates.Dir))
+            {
+                var keep = new HashSet<string>(List().Where(b => b.HasTemplate).Select(b => b.Id + ".png"), StringComparer.OrdinalIgnoreCase);
+                foreach (var f in Directory.GetFiles(Templates.Dir, "*.png")) if (!keep.Contains(Path.GetFileName(f))) try { File.Delete(f); } catch { }
+            }
+            if (dirty) Save();
+        }
+        catch { }
+    }
     public static void Delete(LearnedButton b) { Templates.Delete(b.Id); List().RemoveAll(x => x.Same(b)); Save(); }
     /// v0.5.4: export/import learned buttons as JSON (names, actions, positions only — no images, no screenshots).
     public static int Export(string path) { File.WriteAllText(path, JsonSerializer.Serialize(List().Select(b => { var c = JsonSerializer.Deserialize<LearnedButton>(JsonSerializer.Serialize(b, Opt), Opt)!; c.HasTemplate = false; return c; }).ToList(), Opt)); return List().Count; }

@@ -109,6 +109,7 @@ public partial class App : Application
         _tray.ContextMenuStrip = menu;
         _tray.MouseClick += (_, a) => { if (a.Button == Forms.MouseButtons.Left) RequestOverlay(); };
         SyncMenu();
+        Buttons.TemplateHygiene();
         Watcher.Sync(); Rules.Sync();
 
         _hotkey = new HotkeyHost();

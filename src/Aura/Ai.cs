@@ -51,6 +51,8 @@ RULE: <текст, который появляется в окне> => <имя �
         var st = App.Current.Settings;
         if (!st.AiOptIn) return ("ИИ выключен: включи «ИИ (сеть)».", new());
         if (st.Paused) return ("Aura на паузе — в сеть ничего не отправляю.", new()); // v0.9.5
+        request = (request ?? "").Trim(); if (request.Length == 0) return ("Пустой запрос.", new());
+        if (request.Length > 2000) request = request[..2000]; // v0.9.23: bounded request
         // v0.9.5: nothing about excluded apps leaves the PC — not their window text, button names or rules
         bool exFg = fg != null && st.IsExcluded(fg.Process);
         if (exFg) windowText = null;
@@ -89,7 +91,7 @@ RULE: <текст, который появляется в окне> => <имя �
             if (text.Length > 8000) text = text[..8000];
             var intents = Parse(text);
             var clean = string.Join("\n", text.Split('\n').Where(l => !Rx.IsMatch(l))).Trim();
-            History.Add(("user", request)); History.Add(("assistant", text));
+            History.Add(("user", request)); History.Add(("assistant", text.Length > 2000 ? text[..2000] : text));
             while (History.Count > 16) History.RemoveAt(0);
             return (clean.Length > 0 ? clean : "Готово — подтверди действия ниже.", intents);
         }

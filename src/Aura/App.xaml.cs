@@ -215,12 +215,13 @@ public partial class App : Application
             $"Авто после «Найти» с одним совпадением: {On(st.AutoClickOptIn)}\n" +
             $"Запомнено кнопок: {Buttons.List().Count} (включено: {Buttons.List().Count(b => b.Enabled)}), правил: {Rules.List().Count}\n" +
             $"Подсказки по правилам: {On(st.RulesOptIn)}{(DateTime.Now < RulesSnoozeUntil ? $" (отложены до {RulesSnoozeUntil:HH:mm})" : "")}\n" +
-            $"ИИ (сеть): {On(st.AiOptIn)}{(st.AiOptIn ? $" → {st.AiBaseUrl}, текст окна: {On(st.AiAttachText)}" : " — в сеть ничего не уходит")}\n" +
+            $"ИИ (сеть): {On(st.AiOptIn)}{(st.AiOptIn ? $" → {(string.IsNullOrWhiteSpace(st.AiBaseUrl) ? "прокси Aura по умолчанию" : st.AiBaseUrl)}, текст окна: {On(st.AiAttachText)}" : " — в сеть ничего не уходит")}\n" +
             $"Запуск шагов при старте: {On(st.StartupOptIn)}\n" +
             $"Сохранять картинки кнопок: {On(st.SaveTemplates)} (файлов: {tpl})\n" +
             $"Исключённые приложения: {string.Join(", ", st.ExcludedApps)}\n" +
             $"«Не действовать» в: {(st.ActDisabledApps.Count == 0 ? "—" : string.Join(", ", st.ActDisabledApps))}\n\n" +
-            "Хуков клавиатуры/мыши нет (только RegisterHotKey). Скриншоты на диск не пишутся. Esc / Стоп / Пауза отменяют любое нажатие.";
+            $"Горячие клавиши (RegisterHotKey): окно {_combo}, под курсором {UnderCursorHotkey}, пауза {_hotkeyP?.Combo ?? "—"}, Esc — только пока идёт «Делаю».\n" +
+            "Хуков клавиатуры/мыши нет. Скриншоты на диск не пишутся (кроме маленьких картинок кнопок, только если включено «Сохранять картинки»). Esc / Стоп / Пауза отменяют любое нажатие.";
         System.Windows.MessageBox.Show(txt, "Aura — что сейчас включено", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     public void TogglePause()

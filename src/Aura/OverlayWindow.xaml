@@ -127,6 +127,24 @@
           </StackPanel>
         </Expander>
       </Border>
+      <Border CornerRadius="12" Padding="12" Background="{StaticResource CardBg}" Margin="0,8,0,0">
+        <Expander x:Name="NoTouchExp" IsExpanded="False">
+          <Expander.Header><StackPanel Orientation="Horizontal"><TextBlock Text="🚫" FontSize="16" Width="30"/><TextBlock Text="Не трогать" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource Text}"/></StackPanel></Expander.Header>
+          <StackPanel Margin="6,6,0,0">
+            <TextBlock FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Text="🔒 исключено — Aura не читает и не жмёт вообще (пароли, банки). ✋ не действовать — «действовать» молчит, ручные команды работают."/>
+            <Grid Margin="0,6,0,0">
+              <TextBox x:Name="NtName" Margin="0,0,0,0" Padding="4,2" FontSize="12" ToolTip="Имя процесса без .exe, например chrome"/>
+            </Grid>
+            <WrapPanel Margin="0,4,0,0">
+              <Button Style="{StaticResource Ghost}" Click="NtCurrent_Click"><TextBlock x:Name="NtCurText" Text="← текущее" Foreground="{StaticResource Muted}"/></Button>
+              <Button Style="{StaticResource Ghost}" Click="NtExclude_Click"><TextBlock Text="🔒 исключить" Foreground="{StaticResource Accent}"/></Button>
+              <Button Style="{StaticResource Ghost}" Click="NtNoAct_Click"><TextBlock Text="✋ не действовать" Foreground="{StaticResource Accent}"/></Button>
+              <Button Style="{StaticResource Ghost}" Click="NtDel_Click"><TextBlock Text="Убрать" Foreground="{StaticResource Muted}"/></Button>
+            </WrapPanel>
+            <ListBox x:Name="NtList" Margin="0,4,0,0" MaxHeight="120" FontSize="12"/>
+          </StackPanel>
+        </Expander>
+      </Border>
       <Grid Margin="0,10,0,0">
         <Border CornerRadius="6" Background="#10FFFFFF" Padding="6,2" HorizontalAlignment="Left">
           <TextBlock x:Name="HotkeyHint" Text="Win+Shift+Z" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource Muted}"/></Border>

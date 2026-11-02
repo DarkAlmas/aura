@@ -33,6 +33,7 @@ public partial class OverlayWindow : Window
         if (fg != null) AppOffChk.Content = $"не действовать в {fg.Process}";
         DelayBox.Text = st.StepDelayMs.ToString(); SoundChk.IsChecked = st.ClickSound;
         if (Ai.History.Count > 0) AiReply.Text = HistText();
+        LoadNt(); if (fg != null) NtCurText.Text = "← " + fg.Process;
         RulesChk.IsChecked = st.RulesOptIn; LoadRules(); _ = CheckRules();
         UnderText.Text = "🖱 Под курсором (" + App.Current.UnderCursorHotkey + ")";
         Status.Text = "v" + App.Version + " · " + Status.Text;
@@ -310,6 +311,31 @@ public partial class OverlayWindow : Window
         if (int.TryParse(DelayBox.Text, out var v)) { App.Current.Settings.StepDelayMs = Math.Clamp(v, 200, 10000); App.Current.Settings.Save(); }
         DelayBox.Text = App.Current.Settings.StepDelayMs.ToString();
     }
+    // ---- v0.5.8 «Не трогать»: ExcludedApps (🔒) + ActDisabledApps (✋) in one list
+    sealed record NtItem(string Process, bool Excluded) { public override string ToString() => (Excluded ? "🔒 " : "✋ ") + Process; }
+    void LoadNt()
+    {
+        var st = App.Current.Settings;
+        NtList.ItemsSource = st.ExcludedApps.Select(p => new NtItem(p, true)).Concat(st.ActDisabledApps.Select(p => new NtItem(p, false))).OrderBy(i => i.Process, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+    string NtValue() { var v = NtName.Text.Trim(); if (v.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) v = v[..^4]; return v; }
+    void NtCurrent_Click(object s, RoutedEventArgs e) { if (_fg != null) NtName.Text = _fg.Process; }
+    void NtAdd(List<string> l)
+    {
+        var v = NtValue(); if (v.Length == 0) { NtName.Focus(); return; }
+        if (!l.Any(x => string.Equals(x, v, StringComparison.OrdinalIgnoreCase))) l.Add(v);
+        App.Current.Settings.Save(); NtName.Text = ""; LoadNt(); SyncNtFlags();
+    }
+    void NtExclude_Click(object s, RoutedEventArgs e) => NtAdd(App.Current.Settings.ExcludedApps);
+    void NtNoAct_Click(object s, RoutedEventArgs e) => NtAdd(App.Current.Settings.ActDisabledApps);
+    void NtDel_Click(object s, RoutedEventArgs e)
+    {
+        if (NtList.SelectedItem is not NtItem i) return; var st = App.Current.Settings;
+        (i.Excluded ? st.ExcludedApps : st.ActDisabledApps).RemoveAll(x => string.Equals(x, i.Process, StringComparison.OrdinalIgnoreCase));
+        st.Save(); LoadNt(); SyncNtFlags();
+    }
+    void SyncNtFlags() { if (_fg != null) AppOffChk.IsChecked = App.Current.Settings.ActDisabled(_fg.Process); }
+
     // ---- v0.5.7 rules (suggest only)
     void LoadRules() { RuleList.ItemsSource = null; RuleList.ItemsSource = Rules.List().ToList(); }
     async Task CheckRules()
@@ -348,7 +374,7 @@ public partial class OverlayWindow : Window
         if (_fg == null) return; var l = App.Current.Settings.ActDisabledApps;
         l.RemoveAll(a => string.Equals(a, _fg.Process, StringComparison.OrdinalIgnoreCase));
         if (AppOffChk.IsChecked == true) l.Add(_fg.Process);
-        App.Current.Settings.Save();
+        App.Current.Settings.Save(); LoadNt();
     }
     void BtnToggle_Click(object s, RoutedEventArgs e)
     {

@@ -81,7 +81,9 @@ public sealed class Settings
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var tmp = path + ".tmp"; File.WriteAllText(tmp, text);
-        if (File.Exists(path)) File.Replace(tmp, path, path + ".bak", true); else File.Move(tmp, path);
+        try { if (File.Exists(path)) File.Replace(tmp, path, path + ".bak", true); else File.Move(tmp, path); }
+        catch (IOException) { File.Copy(tmp, path, true); try { File.Delete(tmp); } catch { } } // v0.7.8: AV/lock fallback
+        catch (UnauthorizedAccessException) { File.Copy(tmp, path, true); try { File.Delete(tmp); } catch { } }
     }
     public static T? LoadJson<T>(string path, JsonSerializerOptions? o = null) where T : class
     {

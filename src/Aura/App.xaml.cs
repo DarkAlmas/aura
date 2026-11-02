@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Diagnostics;
 using System.Threading;
@@ -53,6 +54,12 @@ public partial class App : Application
         menu.Items.Add("🛡 Строгий профиль (всё фоновое выкл.)", null, (_, _) => { Actions.Stop(); Learning = false; _overlay?.SafeClose(); Settings.Strict(); SyncMenu(); Watcher.Sync(); Rules.Sync(); Toast("Aura", "Строгий профиль: автоклик, действия, правила, ИИ, захват экрана и автозапуск выключены."); });
         menu.Items.Add("↩ Вернуть мой профиль", null, (_, _) => { _overlay?.SafeClose(); if (Settings.RestoreProfile()) { SyncMenu(); Watcher.Sync(); Rules.Sync(); Toast("Aura", "Прежние настройки восстановлены."); } else Toast("Aura", "Нечего возвращать — строгий профиль не включался."); });
         menu.Items.Add("▶ Последняя подсказка (Делаю 1 с + Стоп)", null, async (_, _) => await RunLastSuggestion());
+        menu.Items.Add("↶ Забыть последнюю запомненную кнопку", null, (_, _) =>
+        {
+            var b = Buttons.List().OrderByDescending(x => x.Created).FirstOrDefault();
+            if (b == null || (DateTime.Now - b.Created).TotalMinutes > 30) { Toast("Aura", "Нечего отменять (за последние 30 мин ничего не запоминал)."); return; }
+            Buttons.Delete(b); _overlay?.Reload(); Toast("Aura", $"Забыл «{b.Name}» ({b.Process})."); Watcher.Sync();
+        });
         var quiet = new Forms.ToolStripMenuItem("Подсказки тихо (звук, без всплывашек)") { CheckOnClick = true, Checked = Settings.RulesQuiet };
         quiet.CheckedChanged += (_, _) => { Settings.RulesQuiet = quiet.Checked; Settings.Save(); };
         menu.Items.Add(quiet);
@@ -168,7 +175,12 @@ public partial class App : Application
     }
     // v0.7.2: clicking a rule-hint balloon = the user's explicit OK → bring that window back and press via «Делаю» 1 с + Стоп (never without the click)
     DateTime _hintAt = DateTime.MinValue;
-    public void ToastHint(string title, string text) { Toast(title, text); _hintAt = DateTime.Now; }
+    DateTime _lastHintToast = DateTime.MinValue;
+    public void ToastHint(string title, string text)
+    {
+        if ((DateTime.Now - _lastHintToast).TotalSeconds < 20) { TrayHint(text.Length > 40 ? text[..40] : text); return; } // v0.7.8: ≤1 hint balloon per 20 s, rest go to the tray tooltip
+        Toast(title, text); _hintAt = DateTime.Now; _lastHintToast = DateTime.Now;
+    }
     async void OnBalloonClicked()
     {
         var fresh = (DateTime.Now - _hintAt).TotalSeconds < 90; _hintAt = DateTime.MinValue;
@@ -189,7 +201,15 @@ public partial class App : Application
         Actions.StopAll = false; r.Used++; try { Rules.Save(); } catch { }
         Toast("Aura", await Actions.Run(new Ai.Intent(kind, r.Suggest), fg, guardLeft: true));
     }
-    public void Toast(string title, string text) => _tray?.ShowBalloonTip(4000, title, text, Forms.ToolTipIcon.Info);
+    // v0.7.8: any newer balloon un-arms the hint click (clicking an unrelated toast never presses); identical toasts within 5 s are dropped
+    string _lastToast = ""; DateTime _lastToastAt = DateTime.MinValue;
+    public void Toast(string title, string text)
+    {
+        var key = title + "|" + text;
+        if (key == _lastToast && (DateTime.Now - _lastToastAt).TotalSeconds < 5) return;
+        _lastToast = key; _lastToastAt = DateTime.Now; _hintAt = DateTime.MinValue;
+        _tray?.ShowBalloonTip(4000, title, text, Forms.ToolTipIcon.Info);
+    }
     public static void OpenPath(string p) { try { Process.Start(new ProcessStartInfo(p) { UseShellExecute = true }); } catch { } }
     /// v0.5.0 «Под курсором» (no hooks): read the control under the mouse ONCE, on hotkey/button press → remember it.
     public async void RememberUnderCursor(int delaySec)

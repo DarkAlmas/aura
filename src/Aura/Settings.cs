@@ -76,14 +76,31 @@ public sealed class Settings
     static string FilePath => Path.Combine(Dir, "settings.json");
     static readonly JsonSerializerOptions Opt = new() { WriteIndented = true, DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull };
 
+    // v0.7.1 crash-safe IO: write .tmp then atomic replace (keeps .bak); a broken file is kept as .broken and .bak is used — never silently wiped.
+    public static void AtomicWrite(string path, string text)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var tmp = path + ".tmp"; File.WriteAllText(tmp, text);
+        if (File.Exists(path)) File.Replace(tmp, path, path + ".bak", true); else File.Move(tmp, path);
+    }
+    public static T? LoadJson<T>(string path, JsonSerializerOptions? o = null) where T : class
+    {
+        foreach (var p in new[] { path, path + ".bak" })
+        {
+            if (!File.Exists(p)) continue;
+            try { var r = JsonSerializer.Deserialize<T>(File.ReadAllText(p), o); if (r != null) return r; }
+            catch { if (p == path) try { File.Copy(path, path + ".broken", true); } catch { } }
+        }
+        return null;
+    }
     public static Settings Load()
     {
         try
         {
             if (File.Exists(FilePath))
             {
-                var txt = File.ReadAllText(FilePath); var r = JsonSerializer.Deserialize<Settings>(txt) ?? new();
-                if (txt.Contains("\"AiKey\"")) r.Save(); // rewrite without the plain key
+                var txt = File.ReadAllText(FilePath); var r = LoadJson<Settings>(FilePath) ?? new();
+                if (txt.Contains("\"AiKey\"")) { r.Save(); try { File.Delete(FilePath + ".bak"); } catch { } } // rewrite without the plain key; drop the .bak that still had it
                 return r;
             }
         }
@@ -93,7 +110,7 @@ public sealed class Settings
     public void Save()
     {
         Directory.CreateDirectory(Dir);
-        File.WriteAllText(FilePath, JsonSerializer.Serialize(this, Opt));
+        AtomicWrite(FilePath, JsonSerializer.Serialize(this, Opt));
     }
     public bool IsExcluded(string process) =>
         ExcludedApps.Exists(a => string.Equals(a, process, StringComparison.OrdinalIgnoreCase));

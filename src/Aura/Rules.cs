@@ -30,10 +30,10 @@ public static class Rules
     public static List<Rule> List()
     {
         if (_cache != null) return _cache;
-        try { _cache = File.Exists(FilePath) ? JsonSerializer.Deserialize<List<Rule>>(File.ReadAllText(FilePath)) ?? new() : new(); } catch { _cache = new(); }
+        _cache = Settings.LoadJson<List<Rule>>(FilePath) ?? new();
         return _cache;
     }
-    public static void Save() { Directory.CreateDirectory(Settings.Dir); File.WriteAllText(FilePath, JsonSerializer.Serialize(List(), Opt)); }
+    public static void Save() => Settings.AtomicWrite(FilePath, JsonSerializer.Serialize(List(), Opt));
     // v0.6.5: trim; «вижу» must be ≥2 chars (empty would match every window); no duplicates
     public static void Add(Rule r)
     {

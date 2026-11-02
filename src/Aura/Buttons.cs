@@ -57,10 +57,10 @@ public static class Buttons
     public static List<LearnedButton> List()
     {
         if (_cache != null) return _cache;
-        try { if (File.Exists(FilePath)) _cache = JsonSerializer.Deserialize<List<LearnedButton>>(File.ReadAllText(FilePath)); } catch { }
+        _cache = Settings.LoadJson<List<LearnedButton>>(FilePath);
         return _cache ??= new();
     }
-    static void Save() { Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!); File.WriteAllText(FilePath, JsonSerializer.Serialize(List(), Opt)); }
+    static void Save() => Settings.AtomicWrite(FilePath, JsonSerializer.Serialize(List(), Opt));
 
     /// Returns null if not saved (excluded app, OCR hit, or empty name).
     public static LearnedButton? Remember(string process, UiaFinder.Target t, ClickAction act = ClickAction.Click, bool template = false)

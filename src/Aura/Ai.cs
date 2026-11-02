@@ -46,7 +46,7 @@ WAIT: <секунды 1-10>
 RULE: <текст, который появляется в окне> => <имя кнопки, которую тогда предложить>   (правило только подсказывает, само не нажимает)
 Используй имена из списка выученных кнопок или из текста окна. Не выдумывай пути. Никаких других форматов команд.";
 
-    public static async Task<(string Text, List<Intent> Intents)> Ask(string request, Native.WindowInfo? fg, string? windowText)
+    public static async Task<(string Text, List<Intent> Intents)> Ask(string request, Native.WindowInfo? fg, string? windowText, System.Threading.CancellationToken ct = default)
     {
         var st = App.Current.Settings;
         if (!st.AiOptIn) return ("ИИ выключен: включи «ИИ (сеть)».", new());
@@ -83,8 +83,8 @@ RULE: <текст, который появляется в окне> => <имя �
             using var req = new HttpRequestMessage(HttpMethod.Post, baseUrl + "/chat/completions")
             { Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json") };
             if (!string.IsNullOrWhiteSpace(st.AiKey)) req.Headers.Add("Authorization", "Bearer " + st.AiKey);
-            using var resp = await Http.SendAsync(req);
-            var json = await resp.Content.ReadAsStringAsync();
+            using var resp = await Http.SendAsync(req, ct);
+            var json = await resp.Content.ReadAsStringAsync(ct);
             if (!resp.IsSuccessStatusCode) return ($"ИИ ответил ошибкой {(int)resp.StatusCode}. {Trim(json, 200)}", new());
             using var doc = JsonDocument.Parse(json);
             var text = doc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString() ?? "";
@@ -95,6 +95,7 @@ RULE: <текст, который появляется в окне> => <имя �
             while (History.Count > 16) History.RemoveAt(0);
             return (clean.Length > 0 ? clean : "Готово — подтверди действия ниже.", intents);
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { return ("Запрос отменён.", new()); } // v0.9.34: Esc
         catch (TaskCanceledException) { return ("ИИ не ответил за 60 с (нет сети?).", new()); }
         catch (Exception ex) { return ("ИИ недоступен: " + ex.Message, new()); }
     }

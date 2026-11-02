@@ -51,10 +51,10 @@ public partial class OverlayWindow : Window
         // Never Close() synchronously from activation events (WmActivate re-entrancy crash in v0.1.0).
         ContentRendered += (_, _) => _armed = true;
         Deactivated += (_, _) => { if (_armed && IsLoaded && !_acting) SafeClose(); };
-        Closing += (_, _) => { _closing = true; ClearHighlight(); DelayBox_LostFocus(this, new RoutedEventArgs()); };
+        Closing += (_, _) => { _closing = true; try { _askCts?.Cancel(); } catch { } ClearHighlight(); DelayBox_LostFocus(this, new RoutedEventArgs()); };
         Closed += (_, _) => { try { _hl?.Close(); } catch { } _hl = null; };
         KeyDown += (_, e) => { if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control && e.OriginalSource is not System.Windows.Controls.Primitives.TextBoxBase) { BtnUndo_Click(this, new RoutedEventArgs()); e.Handled = true; } }; // v0.9.8 Ctrl+Z = forget last remembered
-        KeyDown += (_, e) => { if (e.Key == Key.Escape) { if (_acting || App.Current.ActionCts != null) App.Current.ActionCts?.Cancel(); else if (_sel != null) { Matches.SelectedItem = null; } else SafeClose(); } };
+        KeyDown += (_, e) => { if (e.Key == Key.Escape) { if (_askCts != null) { _askCts.Cancel(); e.Handled = true; return; } if (_acting || App.Current.ActionCts != null) App.Current.ActionCts?.Cancel(); else if (_sel != null) { Matches.SelectedItem = null; } else SafeClose(); } };
     }
 
     bool _armed, _closing, _acting;
@@ -310,14 +310,17 @@ public partial class OverlayWindow : Window
             }
             var fg = _fg != null && st.IsExcluded(_fg.Process) ? null : _fg;
             int before = Ai.History.Count;
-            var (reply, intents) = await Ai.Ask(q, fg, text);
+            _askCts = new System.Threading.CancellationTokenSource();
+            var (reply, intents) = await Ai.Ask(q, fg, text, _askCts.Token);
+            if (_closing) return;
             AiReply.Text = Ai.History.Count > before ? HistText() : (HistText() + "\n\n⚠ " + reply).Trim();
             AskBox.Text = ""; AiScroll.ScrollToEnd(); _intents = intents;
             IntentList.ItemsSource = intents; IntentList.Visibility = IntentBar.Visibility = intents.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             IntentList.SelectAll();
         }
-        finally { AskBtn.IsEnabled = true; _acting = false; }
+        finally { AskBtn.IsEnabled = true; _acting = false; _askCts?.Dispose(); _askCts = null; }
     }
+    System.Threading.CancellationTokenSource? _askCts;
     async void RunIntents_Click(object s, RoutedEventArgs e)
     {
         if (_acting) return; // v0.9.24: a second click while running does not start a second run

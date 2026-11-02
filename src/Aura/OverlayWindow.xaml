@@ -46,12 +46,14 @@
             <Button x:Name="LearnBtn" Style="{StaticResource Ghost}" Click="Learn_Click"><TextBlock x:Name="LearnBtnText" Text="● Учусь" Foreground="{StaticResource Accent}"/></Button>
             <CheckBox x:Name="ActChk" Margin="8,4,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="действовать (сам жму выученные)" ToolTip="Выкл. по умолчанию. Каждые 2 с читаю UIA активного окна; совпадение → «Делаю» 1 с со Стоп/Esc/Пауза → клик." Checked="ActChk_Changed" Unchecked="ActChk_Changed"/>
           </WrapPanel>
+          <CheckBox x:Name="AppOffChk" Margin="36,4,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="не действовать в этом приложении" Click="AppOffChk_Click"/>
           <ListBox x:Name="BtnList" Margin="36,6,0,0" MaxHeight="140" FontSize="12" Visibility="Collapsed"/>
           <WrapPanel x:Name="BtnBar" Margin="36,6,0,0" Visibility="Collapsed">
             <Button Style="{StaticResource Ghost}" Click="BtnDelete_Click"><TextBlock Text="Удалить" Foreground="{StaticResource Muted}"/></Button>
             <Button Style="{StaticResource Ghost}" Click="BtnClear_Click"><TextBlock Text="Очистить всё" Foreground="{StaticResource Muted}"/></Button>
             <Button Style="{StaticResource Ghost}" Click="BtnRun_Click"><TextBlock Text="▶ Нажать" Foreground="{StaticResource Accent}"/></Button>
             <Button Style="{StaticResource Ghost}" Click="BtnSeries_Click" ToolTip="Все выученные кнопки этого окна по порядку, каждая с «Делаю» 1 с"><TextBlock Text="⏩ Серия" Foreground="{StaticResource Accent}"/></Button>
+            <Button Style="{StaticResource Ghost}" Click="BtnToggle_Click" ToolTip="Вкл/выкл кнопку для «действовать»"><TextBlock Text="вкл/выкл" Foreground="{StaticResource Muted}"/></Button>
             <Button Style="{StaticResource Ghost}" Click="BtnStartup_Click" ToolTip="Добавить выбранную кнопку в «При старте»"><TextBlock Text="+ при старте" Foreground="{StaticResource Muted}"/></Button>
           </WrapPanel>
         </StackPanel>
@@ -69,11 +71,12 @@
               <TextBox x:Name="AskBox" Margin="0,0,80,0" Padding="4,3" FontSize="12" TextWrapping="Wrap" AcceptsReturn="False" KeyDown="AskBox_KeyDown" ToolTip="Напр.: «нажми Войти дважды», «открой блокнот», «что тут можно сделать?»"/>
               <Button x:Name="AskBtn" Style="{StaticResource Ghost}" HorizontalAlignment="Right" Click="Ask_Click"><TextBlock Text="Спросить" Foreground="{StaticResource Accent}"/></Button>
             </Grid>
-            <TextBlock x:Name="AiReply" Margin="0,6,0,0" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Text}" MaxHeight="160"/>
+            <ScrollViewer x:Name="AiScroll" Margin="0,6,0,0" MaxHeight="180" VerticalScrollBarVisibility="Auto"><TextBlock x:Name="AiReply" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Text}"/></ScrollViewer>
             <ListBox x:Name="IntentList" Margin="0,6,0,0" MaxHeight="110" FontSize="12" SelectionMode="Multiple" Visibility="Collapsed"/>
             <WrapPanel x:Name="IntentBar" Margin="0,4,0,0" Visibility="Collapsed">
               <Button Style="{StaticResource Ghost}" Click="RunIntents_Click"><TextBlock Text="Выполнить отмеченные" FontWeight="SemiBold" Foreground="{StaticResource Accent}"/></Button>
             </WrapPanel>
+            <Button Style="{StaticResource Ghost}" HorizontalAlignment="Left" Click="AiReset_Click"><TextBlock Text="Новый чат" Foreground="{StaticResource Muted}"/></Button>
           </StackPanel>
         </Expander>
       </Border>
@@ -82,6 +85,11 @@
           <Expander.Header><StackPanel Orientation="Horizontal"><TextBlock Text="⚡" FontSize="16" Width="30"/><TextBlock Text="При старте Aura" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource Text}"/></StackPanel></Expander.Header>
           <StackPanel Margin="6,6,0,0">
             <CheckBox x:Name="StartChk" FontSize="11" Foreground="{StaticResource Muted}" Content="выполнять при запуске Aura (клики — с «Делаю» 1 с)" Click="StartChk_Click"/>
+            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+              <TextBlock Text="Пауза между шагами (серия/старт/ИИ), мс:" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center"/>
+              <TextBox x:Name="DelayBox" Width="56" Margin="6,0,0,0" Padding="2" FontSize="11" LostFocus="DelayBox_LostFocus"/>
+              <CheckBox x:Name="SoundChk" Margin="10,0,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="звук клика" Click="SoundChk_Click"/>
+            </StackPanel>
             <Grid Margin="0,6,0,0">
               <ComboBox x:Name="StartKind" Width="96" HorizontalAlignment="Left" FontSize="11" SelectedIndex="0"><ComboBoxItem Content="Запустить"/><ComboBoxItem Content="Открыть URL"/><ComboBoxItem Content="Нажать"/><ComboBoxItem Content="Ждать, с"/></ComboBox>
               <TextBox x:Name="StartArg" Margin="100,0,70,0" Padding="4,2" FontSize="12" ToolTip="Путь к .exe / https://… / имя выученной кнопки / секунды"/>

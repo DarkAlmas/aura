@@ -31,6 +31,9 @@ public sealed class Settings
     /// Delay between steps of a series / startup list.
     public int StepDelayMs { get; set; } = 800;
     public bool ClickSound { get; set; } = false;
+    /// v0.5.2 profiles: apps where «действовать» stays silent even when ON.
+    public List<string> ActDisabledApps { get; set; } = new();
+    public bool ActDisabled(string p) => ActDisabledApps.Exists(a => string.Equals(a, p, StringComparison.OrdinalIgnoreCase));
     /// «ИИ (сеть)» — the ONLY switch that allows network. OFF by default.
     public bool AiOptIn { get; set; } = false;
     public string AiBaseUrl { get; set; } = Ai.ProxyBase;

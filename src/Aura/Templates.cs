@@ -63,10 +63,24 @@ public static class Templates
     }
 
     /// Returns screen rect of the best match in the window, or null if mean abs diff > 18 / no template.
-    public static System.Windows.Rect? Match(string id, IntPtr hwnd)
+    public static System.Windows.Rect? Match(string id, IntPtr hwnd, System.Windows.Rect? hint = null)
     {
         try
         {
+            if (hint is System.Windows.Rect hr && !hr.IsEmpty && File.Exists(PathOf(id)))
+            {   // v0.5.1 fast path: small capture around the remembered spot (±24 px) first.
+                using var tb0 = new Bitmap(PathOf(id));
+                using var t0 = new Bitmap(tb0.Width, tb0.Height, PixelFormat.Format32bppArgb);
+                using (var g = Graphics.FromImage(t0)) g.DrawImage(tb0, 0, 0, tb0.Width, tb0.Height);
+                int cx = (int)(hr.X + hr.Width / 2), cy = (int)(hr.Y + hr.Height / 2), M = 24;
+                int L = cx - t0.Width / 2 - M, T = cy - t0.Height / 2 - M, w = t0.Width + 2 * M, h = t0.Height + 2 * M;
+                using var sh = new Bitmap(w, h, PixelFormat.Format32bppArgb);
+                using (var g = Graphics.FromImage(sh)) g.CopyFromScreen(L, T, 0, 0, new Size(w, h));
+                var iF0 = Gray(sh, out int iw0, out _, 1); var tF0 = Gray(t0, out int tw0, out int th0, 1);
+                long b0 = long.MaxValue; int x0 = 0, y0 = 0;
+                for (int y = 0; y <= h - th0; y++) for (int x = 0; x <= w - tw0; x++) { var v = Sad(iF0, iw0, tF0, tw0, th0, x, y, b0); if (v < b0) { b0 = v; x0 = x; y0 = y; } }
+                if (b0 != long.MaxValue && b0 / (double)(tw0 * th0) <= 18) return new System.Windows.Rect(L + x0, T + y0, tw0, th0);
+            }
             if (!File.Exists(PathOf(id)) || !GetWindowRect(hwnd, out var wr)) return null;
             int W = Math.Min(wr.R - wr.L, 4000), H = Math.Min(wr.B - wr.T, 3000);
             using var tb = new Bitmap(PathOf(id));
@@ -76,16 +90,16 @@ public static class Templates
             using var shot = new Bitmap(W, H, PixelFormat.Format32bppArgb);
             using (var g = Graphics.FromImage(shot)) g.CopyFromScreen(wr.L, wr.T, 0, 0, new Size(W, H));
             // coarse pass at 1/2
-            var ic = Gray(shot, out int icw, out int ich, 2); var tc = Gray(tpl, out int tcw, out int tch, 2);
+            const int K = 4; var ic = Gray(shot, out int icw, out int ich, K); var tc = Gray(tpl, out int tcw, out int tch, K);
             long best = long.MaxValue; int bx = 0, by = 0;
             for (int y = 0; y + tch <= ich; y++)
                 for (int x = 0; x + tcw <= icw; x++)
                 { var s = Sad(ic, icw, tc, tcw, tch, x, y, best); if (s < best) { best = s; bx = x; by = y; } }
             // refine at full res ±3 px
             var iF = Gray(shot, out int iw, out int ih, 1); var tF = Gray(tpl, out int tw, out int th, 1);
-            long fb = long.MaxValue; int fx = bx * 2, fy = by * 2;
-            for (int y = Math.Max(0, by * 2 - 3); y <= Math.Min(ih - th, by * 2 + 3); y++)
-                for (int x = Math.Max(0, bx * 2 - 3); x <= Math.Min(iw - tw, bx * 2 + 3); x++)
+            long fb = long.MaxValue; int fx = bx * K, fy = by * K;
+            for (int y = Math.Max(0, by * K - K - 1); y <= Math.Min(ih - th, by * K + K + 1); y++)
+                for (int x = Math.Max(0, bx * K - K - 1); x <= Math.Min(iw - tw, bx * K + K + 1); x++)
                 { var s = Sad(iF, iw, tF, tw, th, x, y, fb); if (s < fb) { fb = s; fx = x; fy = y; } }
             if (fb == long.MaxValue || fb / (double)(tw * th) > 18) return null;
             return new System.Windows.Rect(wr.L + fx, wr.T + fy, tw, th);

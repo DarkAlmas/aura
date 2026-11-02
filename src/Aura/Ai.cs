@@ -17,6 +17,9 @@ public static class Ai
 {
     public const string ProxyBase = "https://circuit-sim-ai-proxy.vercel.app/v1";
     public const string OllamaBase = "http://127.0.0.1:11434/v1";
+    /// v0.5.1: short chat history (last 8 messages, memory only, cleared on «Новый чат» / restart).
+    public static readonly List<(string Role, string Text)> History = new();
+    public static void Reset() => History.Clear();
     static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(60) };
 
     public sealed record Intent(string Kind, string Arg)
@@ -58,11 +61,9 @@ WAIT: <секунды 1-10>
         {
             model = string.IsNullOrWhiteSpace(st.AiModel) ? "openai/gpt-oss-20b" : st.AiModel,
             temperature = 0.2, max_tokens = 1024, stream = false,
-            messages = new object[]
-            {
-                new { role = "system", content = System },
-                new { role = "user", content = "Контекст: " + JsonSerializer.Serialize(ctx) + "\nЗапрос: " + request }
-            }
+            messages = new object[] { new { role = "system", content = System } }
+                .Concat(History.TakeLast(8).Select(h => (object)new { role = h.Role, content = h.Text }))
+                .Append(new { role = "user", content = "Контекст: " + JsonSerializer.Serialize(ctx) + "\nЗапрос: " + request }).ToArray()
         };
         var baseUrl = string.IsNullOrWhiteSpace(st.AiBaseUrl) ? ProxyBase : st.AiBaseUrl.TrimEnd('/');
         try
@@ -77,6 +78,8 @@ WAIT: <секунды 1-10>
             var text = doc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString() ?? "";
             var intents = Parse(text);
             var clean = string.Join("\n", text.Split('\n').Where(l => !Rx.IsMatch(l))).Trim();
+            History.Add(("user", request)); History.Add(("assistant", text));
+            while (History.Count > 16) History.RemoveAt(0);
             return (clean.Length > 0 ? clean : "Готово — подтверди действия ниже.", intents);
         }
         catch (TaskCanceledException) { return ("ИИ не ответил за 60 с (нет сети?).", new()); }

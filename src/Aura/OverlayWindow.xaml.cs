@@ -29,13 +29,17 @@ public partial class OverlayWindow : Window
         AiChk.IsChecked = st.AiOptIn; AiTextChk.IsChecked = st.AiAttachText;
         _aiInit = true; AiBackend.SelectedIndex = st.AiBaseUrl == Ai.ProxyBase ? 0 : st.AiBaseUrl == Ai.OllamaBase ? 1 : 2; _aiInit = false;
         StartChk.IsChecked = st.StartupOptIn; LoadStartup();
+        AppOffChk.IsChecked = fg != null && st.ActDisabled(fg.Process); AppOffChk.IsEnabled = fg != null;
+        if (fg != null) AppOffChk.Content = $"не действовать в {fg.Process}";
+        DelayBox.Text = st.StepDelayMs.ToString(); SoundChk.IsChecked = st.ClickSound;
+        if (Ai.History.Count > 0) AiReply.Text = HistText();
         UnderText.Text = "🖱 Под курсором (" + App.Current.UnderCursorHotkey + ")";
         Status.Text = "v" + App.Version + " · " + Status.Text;
         Loaded += (_, _) => { var wa = SystemParameters.WorkArea; Left = wa.Right - ActualWidth - 8; Top = wa.Bottom - ActualHeight - 8; };
         // Never Close() synchronously from activation events (WmActivate re-entrancy crash in v0.1.0).
         ContentRendered += (_, _) => _armed = true;
         Deactivated += (_, _) => { if (_armed && IsLoaded && !_acting) SafeClose(); };
-        Closing += (_, _) => { _closing = true; ClearHighlight(); };
+        Closing += (_, _) => { _closing = true; ClearHighlight(); DelayBox_LostFocus(this, new RoutedEventArgs()); };
         Closed += (_, _) => { try { _hl?.Close(); } catch { } _hl = null; };
         KeyDown += (_, e) => { if (e.Key == Key.Escape) { if (_acting || App.Current.ActionCts != null) App.Current.ActionCts?.Cancel(); else if (_sel != null) { Matches.SelectedItem = null; } else SafeClose(); } };
     }
@@ -272,8 +276,10 @@ public partial class OverlayWindow : Window
                 if (w != null) text = string.Join(" | ", w.Where(t => t.Name.Contains(' ') || t.Name.Length > 1).Select(t => t.Name).Distinct().Take(200));
             }
             var fg = _fg != null && st.IsExcluded(_fg.Process) ? null : _fg;
+            int before = Ai.History.Count;
             var (reply, intents) = await Ai.Ask(q, fg, text);
-            AiReply.Text = reply; _intents = intents;
+            AiReply.Text = Ai.History.Count > before ? HistText() : (HistText() + "\n\n⚠ " + reply).Trim();
+            AskBox.Text = ""; AiScroll.ScrollToEnd(); _intents = intents;
             IntentList.ItemsSource = intents; IntentList.Visibility = IntentBar.Visibility = intents.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             IntentList.SelectAll();
         }
@@ -296,6 +302,26 @@ public partial class OverlayWindow : Window
         finally { _acting = false; LoadButtons(); }
     }
 
+    static string HistText() => string.Join("\n\n", Ai.History.TakeLast(8).Select(h => (h.Role == "user" ? "Ты: " : "Aura: ") + h.Text.Trim()));
+    void AiReset_Click(object s, RoutedEventArgs e) { Ai.Reset(); AiReply.Text = "Новый чат."; IntentList.ItemsSource = null; IntentList.Visibility = IntentBar.Visibility = Visibility.Collapsed; }
+    void DelayBox_LostFocus(object s, RoutedEventArgs e)
+    {
+        if (int.TryParse(DelayBox.Text, out var v)) { App.Current.Settings.StepDelayMs = Math.Clamp(v, 200, 10000); App.Current.Settings.Save(); }
+        DelayBox.Text = App.Current.Settings.StepDelayMs.ToString();
+    }
+    void AppOffChk_Click(object s, RoutedEventArgs e)
+    {
+        if (_fg == null) return; var l = App.Current.Settings.ActDisabledApps;
+        l.RemoveAll(a => string.Equals(a, _fg.Process, StringComparison.OrdinalIgnoreCase));
+        if (AppOffChk.IsChecked == true) l.Add(_fg.Process);
+        App.Current.Settings.Save();
+    }
+    void BtnToggle_Click(object s, RoutedEventArgs e)
+    {
+        if (BtnList.SelectedItem is not LearnedButton b) { LearnInfo.Text = "Выбери кнопку в списке."; return; }
+        b.Enabled = !b.Enabled; Buttons.Update(); LoadButtons(); LearnInfo.Text = $"«{b.Label}»: {(b.Enabled ? "вкл" : "выкл")} для «действовать».";
+    }
+    void SoundChk_Click(object s, RoutedEventArgs e) { App.Current.Settings.ClickSound = SoundChk.IsChecked == true; App.Current.Settings.Save(); }
     void LoadStartup() { StartList.ItemsSource = null; StartList.ItemsSource = App.Current.Settings.StartupActions.ToList(); }
     void StartChk_Click(object s, RoutedEventArgs e) { App.Current.Settings.StartupOptIn = StartChk.IsChecked == true; App.Current.Settings.Save(); }
     void StartAdd_Click(object s, RoutedEventArgs e)

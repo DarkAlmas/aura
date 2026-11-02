@@ -23,15 +23,18 @@ public sealed class LearnedButton
     public double Y { get; set; }
     public double W { get; set; }
     public double H { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore] public System.Windows.Rect? Rect => W > 0 && H > 0 ? new System.Windows.Rect(X, Y, W, H) : null;
     /// v0.5.0: Click / DoubleClick / RightClick.
     [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter))]
     public ClickAction Action { get; set; } = ClickAction.Click;
     public string Id { get; set; } = Guid.NewGuid().ToString("N")[..12];
     /// v0.5.1: a small template PNG exists in %AppData%\Aura\templates\{Id}.png (only if user ticked «запомнить картинку»).
     public bool HasTemplate { get; set; }
+    /// v0.5.2: «действовать» uses only enabled buttons (toggle «вкл/выкл» in the list).
+    public bool Enabled { get; set; } = true;
     string ActLabel => Action == ClickAction.DoubleClick ? " · ×2" : Action == ClickAction.RightClick ? " · ПКМ" : "";
     public string Label => string.IsNullOrWhiteSpace(Name) ? $"[{AutomationId}]" : Name;
-    public override string ToString() => (Ocr ? $"«{Label}» · OCR · {Process}" : $"«{Label}» · {Type} · {Process}") + ActLabel + (HasTemplate ? " · 🖼" : "");
+    public override string ToString() => (Ocr ? $"«{Label}» · OCR · {Process}" : $"«{Label}» · {Type} · {Process}") + ActLabel + (HasTemplate ? " · 🖼" : "") + (Enabled ? "" : " · выкл");
 
     public bool Same(LearnedButton o) => string.Equals(Process, o.Process, StringComparison.OrdinalIgnoreCase)
         && Name == o.Name && AutomationId == o.AutomationId && Type == o.Type && Ocr == o.Ocr;
@@ -116,7 +119,7 @@ public static class Buttons
         }
         if (b.HasTemplate)
         {
-            var r = await Task.Run(() => Templates.Match(b.Id, hwnd));
+            var r = await Task.Run(() => Templates.Match(b.Id, hwnd, b.Rect));
             if (r != null) return new UiaFinder.Target(b.Name, "", "картинка", r.Value, null);
         }
         return null;
@@ -148,8 +151,8 @@ public static class Watcher
         var learned = Buttons.List();
         if (learned.Count == 0) return;
         var fg = Native.Foreground();
-        if (fg == null || fg.Pid == Environment.ProcessId || st.IsExcluded(fg.Process)) return;
-        var mine = learned.Where(b => string.Equals(b.Process, fg.Process, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (fg == null || fg.Pid == Environment.ProcessId || st.IsExcluded(fg.Process) || st.ActDisabled(fg.Process)) return;
+        var mine = learned.Where(b => b.Enabled && string.Equals(b.Process, fg.Process, StringComparison.OrdinalIgnoreCase)).ToList();
         App.Current.LastApp = fg.Process; App.Current.RefreshLook();
         if (mine.Count == 0) return;
         _busy = true;
@@ -176,7 +179,7 @@ public static class Watcher
                 if (hit == null)
                     foreach (var b in rest.Where(b => b.HasTemplate))
                     {
-                        var r = await Task.Run(() => Templates.Match(b.Id, fg.Hwnd));
+                        var r = await Task.Run(() => Templates.Match(b.Id, fg.Hwnd, b.Rect));
                         if (r != null) { hit = new UiaFinder.Target(b.Name, "", "картинка", r.Value, null); lb = b; break; }
                     }
             }

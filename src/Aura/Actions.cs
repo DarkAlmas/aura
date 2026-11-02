@@ -62,7 +62,7 @@ public static class Actions
 
     public static async Task<UiaFinder.Target?> Locate(string name, Native.WindowInfo fg)
     {
-        var uia = await Task.Run(() => UiaFinder.Enumerate(fg.Hwnd));
+        var uia = await UiaFinder.EnumerateAsync(fg.Hwnd);
         var lb = Buttons.ByName(name, fg.Process);
         if (lb != null) { var h = await Buttons.Locate(lb, fg.Hwnd, uia); if (h != null) return h; }
         var m = UiaFinder.Match(uia, name);

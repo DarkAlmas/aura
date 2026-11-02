@@ -91,7 +91,7 @@ public static class Rules
         _busy = true;
         try
         {
-            var uia = await Task.Run(() => UiaFinder.Enumerate(fg.Hwnd));
+            var uia = await UiaFinder.EnumerateAsync(fg.Hwnd);
             if (st.Paused || !st.RulesOptIn || App.Current.ActionCts != null || DateTime.Now < App.Current.RulesSnoozeUntil || Native.Foreground()?.Hwnd != fg.Hwnd) return; // v0.9.1: state may change during the read
             foreach (var r in Hits(fg.Process, uia))
             {

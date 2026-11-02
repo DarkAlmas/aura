@@ -41,6 +41,16 @@ public static class UiaFinder
         return null;
     }
 
+    static int _inflight;
+    /// v0.9.36: UIA read with a 6 s timeout — a hung app can no longer freeze the watcher/rules forever (they just get an empty list).
+    public static async System.Threading.Tasks.Task<List<Target>> EnumerateAsync(IntPtr hwnd)
+    {
+        if (System.Threading.Volatile.Read(ref _inflight) >= 3) return new();
+        System.Threading.Interlocked.Increment(ref _inflight);
+        var t = System.Threading.Tasks.Task.Run(() => { try { return Enumerate(hwnd); } catch { return new List<Target>(); } finally { System.Threading.Interlocked.Decrement(ref _inflight); } });
+        var done = await System.Threading.Tasks.Task.WhenAny(t, System.Threading.Tasks.Task.Delay(6000));
+        return done == t ? t.Result : new();
+    }
     public static List<Target> Enumerate(IntPtr hwnd, int max = 400)
     {
         var res = new List<Target>();

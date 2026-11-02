@@ -85,7 +85,7 @@ public partial class OverlayWindow : Window
         var hwnd = _fg.Hwnd; var q = FindBox.Text;
         try
         {
-            if (_all == null || DateTime.Now - _allAt > TimeSpan.FromSeconds(5)) { _all = await Task.Run(() => UiaFinder.Enumerate(hwnd)); _allAt = DateTime.Now; } // v0.6.1: no stale UIA snapshot
+            if (_all == null || DateTime.Now - _allAt > TimeSpan.FromSeconds(5)) { _all = await UiaFinder.EnumerateAsync(hwnd); _allAt = DateTime.Now; } // v0.6.1: no stale UIA snapshot
             var m = UiaFinder.Match(_all, q);
             Matches.ItemsSource = m;
             Matches.Visibility = m.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -378,7 +378,7 @@ public partial class OverlayWindow : Window
         try
         {
             if (_fg == null || App.Current.Settings.IsExcluded(_fg.Process) || !Rules.For(_fg.Process).Any()) return;
-            var uia = await Task.Run(() => UiaFinder.Enumerate(_fg.Hwnd));
+            var uia = await UiaFinder.EnumerateAsync(_fg.Hwnd);
             var hits = Rules.Hits(_fg.Process, uia);
             if (hits.Count == 0) return;
             RuleHits.ItemsSource = hits; RuleHits.SelectedIndex = 0;
@@ -404,7 +404,7 @@ public partial class OverlayWindow : Window
         if (_fg == null || RuleWhen.Items.Count > 0 || App.Current.Settings.IsExcluded(_fg.Process)) return;
         try
         {
-            var uia = await Task.Run(() => UiaFinder.Enumerate(_fg.Hwnd));
+            var uia = await UiaFinder.EnumerateAsync(_fg.Hwnd);
             foreach (var n in uia.Select(t => (t.Name ?? "").Trim()).Where(n => n.Length >= 2 && n.Length <= 60).Distinct().Take(60)) RuleWhen.Items.Add(n);
         }
         catch { }

@@ -168,7 +168,7 @@ public static class Buttons
     /// Locate a learned button in a window: UIA → (opt-in) OCR by its exact name → (opt-in) template. No hooks.
     public static async Task<UiaFinder.Target?> Locate(LearnedButton b, IntPtr hwnd, List<UiaFinder.Target>? uia = null)
     {
-        uia ??= await Task.Run(() => UiaFinder.Enumerate(hwnd));
+        uia ??= await UiaFinder.EnumerateAsync(hwnd);
         var hit = uia.FirstOrDefault(b.Matches);
         if (hit != null) return hit;
         var st = App.Current.Settings;
@@ -225,7 +225,7 @@ public static class Watcher
         _busy = true;
         try
         {
-            var all = await Task.Run(() => UiaFinder.Enumerate(fg.Hwnd));
+            var all = await UiaFinder.EnumerateAsync(fg.Hwnd);
             UiaFinder.Target? hit = null; LearnedButton? lb = null;
             foreach (var b in mine)
             {

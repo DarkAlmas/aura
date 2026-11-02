@@ -124,6 +124,13 @@
               <TextBlock Grid.Column="1" Text=" → " VerticalAlignment="Center" Foreground="{StaticResource Muted}"/>
               <TextBox x:Name="RuleSuggest" Grid.Column="2" Padding="4,2" FontSize="12" ToolTip="Предложить нажать (имя кнопки)"/>
             </Grid>
+            <WrapPanel Margin="0,2,0,0">
+              <TextBlock Text="Шаблоны:" FontSize="11" VerticalAlignment="Center" Foreground="{StaticResource Muted}"/>
+              <Button Style="{StaticResource Ghost}" Tag="cookie|Принять" Click="RulePreset_Click"><TextBlock Text="cookies" FontSize="11" Foreground="{StaticResource Muted}"/></Button>
+              <Button Style="{StaticResource Ghost}" Tag="Сохранить изменения|Сохранить" Click="RulePreset_Click"><TextBlock Text="сохранить?" FontSize="11" Foreground="{StaticResource Muted}"/></Button>
+              <Button Style="{StaticResource Ghost}" Tag="Доступно обновление|Позже" Click="RulePreset_Click"><TextBlock Text="обновление" FontSize="11" Foreground="{StaticResource Muted}"/></Button>
+              <Button Style="{StaticResource Ghost}" Tag="Продолжить просмотр|Продолжить" Click="RulePreset_Click"><TextBlock Text="продолжить?" FontSize="11" Foreground="{StaticResource Muted}"/></Button>
+            </WrapPanel>
             <WrapPanel Margin="0,4,0,0">
               <CheckBox x:Name="RuleThisApp" IsChecked="True" FontSize="11" Foreground="{StaticResource Muted}" Content="только в этом приложении" VerticalAlignment="Center"/>
               <Button Style="{StaticResource Ghost}" Click="RuleAdd_Click"><TextBlock Text="Добавить" Foreground="{StaticResource Accent}"/></Button>

@@ -224,7 +224,7 @@ public partial class App : Application
     DateTime _lastHintToast = DateTime.MinValue;
     public void ToastHint(string title, string text)
     {
-        if ((DateTime.Now - _lastHintToast).TotalSeconds < 20) { TrayHint(text.Length > 40 ? text[..40] : text); return; } // v0.7.8: ≤1 hint balloon per 20 s, rest go to the tray tooltip
+        if ((DateTime.Now - _lastHintToast).TotalSeconds < 20) { _hintAt = DateTime.MinValue; TrayHint(text.Length > 40 ? text[..40] : text); return; } /* v0.8.4: a newer hint replaced LastSuggestion → the older balloon must not press it */ // v0.7.8: ≤1 hint balloon per 20 s, rest go to the tray tooltip
         Toast(title, text); _hintAt = DateTime.Now; _lastHintToast = DateTime.Now;
     }
     async void OnBalloonClicked()
@@ -234,7 +234,7 @@ public partial class App : Application
     }
     DateTime _suggAt = DateTime.MinValue;
     public DateTime RulesSnoozeUntil = DateTime.MinValue; // v0.8.2: in-memory only; restart clears it
-    public void NoteSuggestion() { _suggAt = DateTime.Now; RefreshLook(); RestartHintFade(); }
+    public void NoteSuggestion() { _hintAt = DateTime.MinValue; _suggAt = DateTime.Now; RefreshLook(); RestartHintFade(); }
     public DateTime SuggAt => _suggAt;
     // v0.7.7: also from tray «▶ Последняя подсказка» (explicit click, within 5 min)
     public async System.Threading.Tasks.Task RunLastSuggestion()

@@ -82,11 +82,15 @@ public static class Buttons
     public static int Export(string path) { File.WriteAllText(path, JsonSerializer.Serialize(List().Select(b => { var c = JsonSerializer.Deserialize<LearnedButton>(JsonSerializer.Serialize(b, Opt), Opt)!; c.HasTemplate = false; return c; }).ToList(), Opt)); return List().Count; }
     public static int Import(string path)
     {
+        // v0.7.6 validation: ≤1 MB, ≤300 items, sane names/process/bounds; imported buttons arrive DISABLED so «действовать» never presses them until you enable each one
+        if (new FileInfo(path).Length > 1_000_000) throw new InvalidDataException("файл больше 1 МБ");
         var src = JsonSerializer.Deserialize<List<LearnedButton>>(File.ReadAllText(path), Opt) ?? new(); int n = 0;
-        foreach (var b in src.Where(b => !string.IsNullOrWhiteSpace(b.Name) && !string.IsNullOrWhiteSpace(b.Process)))
+        static bool Ok(string? t, int max) => !string.IsNullOrWhiteSpace(t) && t.Length <= max && !t.Any(char.IsControl);
+        foreach (var b in src.Take(300).Where(b => Ok(b.Name, 120) && Ok(b.Process, 64) && b.Process.IndexOfAny(new[] { '\\', '/', ':' }) < 0
+                                                   && (b.AutomationId ?? "").Length <= 200 && b.W >= 0 && b.H >= 0 && b.W < 10000 && b.H < 10000))
         {
             if (List().Any(x => x.Same(b))) continue;
-            b.HasTemplate = false; b.Id = Guid.NewGuid().ToString("N")[..12]; List().Add(b); n++;
+            b.HasTemplate = false; b.Enabled = false; b.Id = Guid.NewGuid().ToString("N")[..12]; List().Add(b); n++;
         }
         Save(); return n;
     }

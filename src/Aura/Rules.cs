@@ -81,7 +81,7 @@ public static class Rules
     static async void Tick(object? s, EventArgs e)
     {
         var st = App.Current.Settings;
-        if (_busy || st.Paused || !st.RulesOptIn) return;
+        if (_busy || st.Paused || !st.RulesOptIn || App.Current.ActionCts != null) return; // v0.7.6: quiet while «Делаю»
         var fg = Native.Foreground();
         if (fg == null || fg.Pid == Environment.ProcessId || st.IsExcluded(fg.Process) || !For(fg.Process).Any()) return;
         _busy = true;

@@ -73,7 +73,7 @@ public partial class App : Application
         menu.Items.Add("Импорт кнопок…", null, (_, _) =>
         {
             var d = new Microsoft.Win32.OpenFileDialog { Filter = "JSON|*.json" };
-            if (d.ShowDialog() == true) try { Toast("Aura", $"Импортировано новых: {Buttons.Import(d.FileName)}."); _overlay?.Reload(); } catch (Exception ex) { Toast("Aura", "Ошибка импорта: " + ex.Message); }
+            if (d.ShowDialog() == true) try { Toast("Aura", $"Импортировано новых: {Buttons.Import(d.FileName)} — выключены, включи нужные (вкл/выкл)."); _overlay?.Reload(); } catch (Exception ex) { Toast("Aura", "Ошибка импорта: " + ex.Message); }
         });
         menu.Items.Add("Настройки (settings.json)", null, (_, _) => OpenPath(Settings.Dir));
         menu.Items.Add(new Forms.ToolStripSeparator());

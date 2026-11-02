@@ -47,6 +47,7 @@ public partial class App : Application
         System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (_, ev) => { CrashLog(ev.Exception); ev.SetObserved(); };
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add(new Forms.ToolStripMenuItem($"Aura {Version}") { Enabled = false });
+        menu.Items.Add("🛡 Что Aura сейчас может (проверка)", null, (_, _) => ShowSafetyReport());
         menu.Items.Add("📁 Папка данных Aura", null, (_, _) => { System.IO.Directory.CreateDirectory(Aura.Settings.Dir); OpenPath(Aura.Settings.Dir); });
         menu.Items.Add("📄 Журнал ошибок", null, (_, _) => { var p = System.IO.Path.Combine(Aura.Settings.Dir, "crash.log"); if (System.IO.File.Exists(p)) OpenPath(p); else Toast("Aura", "Ошибок не было."); });
         var openItem = menu.Items.Add("Открыть (Win+Shift+Z)", null, (_, _) => RequestOverlay());
@@ -200,6 +201,24 @@ public partial class App : Application
         _overlay.Show(); _overlay.Activate();
     }
 
+    // v0.8.9: plain-language read-out of every permission — what is ON right now
+    void ShowSafetyReport()
+    {
+        var st = Settings; string On(bool b) => b ? "ВКЛ" : "выкл";
+        int tpl = 0; try { var d = System.IO.Path.Combine(Aura.Settings.Dir, "templates"); if (System.IO.Directory.Exists(d)) tpl = System.IO.Directory.GetFiles(d, "*.png").Length; } catch { }
+        var txt = $"Aura {Version}\n\n" +
+            $"Пауза: {On(st.Paused)}\n" +
+            $"Смотрит экран (OCR, только в памяти): {On(st.ScreenCaptureOptIn)}\n" +
+            $"Действует сама (через «Делаю» 1 с + Стоп): {On(st.ActOptIn)}\n" +
+            $"Подсказки по правилам: {On(st.RulesOptIn)}{(DateTime.Now < RulesSnoozeUntil ? $" (отложены до {RulesSnoozeUntil:HH:mm})" : "")}\n" +
+            $"ИИ (сеть): {On(st.AiOptIn)}{(st.AiOptIn ? $" → {st.AiBaseUrl}, текст окна: {On(st.AiAttachText)}" : " — в сеть ничего не уходит")}\n" +
+            $"Запуск шагов при старте: {On(st.StartupOptIn)}\n" +
+            $"Сохранять картинки кнопок: {On(st.SaveTemplates)} (файлов: {tpl})\n" +
+            $"Исключённые приложения: {string.Join(", ", st.ExcludedApps)}\n" +
+            $"«Не действовать» в: {(st.ActDisabledApps.Count == 0 ? "—" : string.Join(", ", st.ActDisabledApps))}\n\n" +
+            "Хуков клавиатуры/мыши нет (только RegisterHotKey). Скриншоты на диск не пишутся. Esc / Стоп / Пауза отменяют любое нажатие.";
+        System.Windows.MessageBox.Show(txt, "Aura — что сейчас включено", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
     public void TogglePause()
     {
         Settings.Paused = !Settings.Paused; Settings.Save(); SyncMenu();

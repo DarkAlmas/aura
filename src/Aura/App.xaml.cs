@@ -40,6 +40,7 @@ public partial class App : Application
         Settings = Settings.Load();
 
         _tray = new Forms.NotifyIcon { Text = "Aura — Win+Shift+Z", Icon = System.Drawing.SystemIcons.Information, Visible = true };
+        _tray.BalloonTipClicked += (_, _) => OnBalloonClicked();
         var menu = new Forms.ContextMenuStrip();
         var openItem = menu.Items.Add("Открыть (Win+Shift+Z)", null, (_, _) => RequestOverlay());
         _pauseItem = new Forms.ToolStripMenuItem("Пауза", null, (_, _) => TogglePause());
@@ -159,6 +160,21 @@ public partial class App : Application
         if (_aiItem != null) _aiItem.Checked = Settings.AiOptIn;
     }
     public void TrayHint(string t) { if (_tray != null) _tray.Text = ("Aura · " + t).Length > 63 ? ("Aura · " + t)[..63] : "Aura · " + t; }
+    // v0.7.2: clicking a rule-hint balloon = the user's explicit OK → bring that window back and press via «Делаю» 1 с + Стоп (never without the click)
+    DateTime _hintAt = DateTime.MinValue;
+    public void ToastHint(string title, string text) { Toast(title, text); _hintAt = DateTime.Now; }
+    async void OnBalloonClicked()
+    {
+        var fresh = (DateTime.Now - _hintAt).TotalSeconds < 90; _hintAt = DateTime.MinValue;
+        if (!fresh || LastSuggestion is not { } ls || Settings.Paused || ActionCts != null) return;
+        var (r, fg) = ls;
+        if (!Native.IsWindow(fg.Hwnd) || Settings.IsExcluded(fg.Process) || Settings.ActDisabled(fg.Process)) { Toast("Aura", "Окно закрыто или в «не трогать» — не нажимаю."); return; }
+        Native.SetForegroundWindow(fg.Hwnd); await System.Threading.Tasks.Task.Delay(250);
+        var lb = Buttons.ByName(r.Suggest, fg.Process);
+        var kind = lb?.Action == ClickAction.DoubleClick ? "DOUBLECLICK" : lb?.Action == ClickAction.RightClick ? "RIGHTCLICK" : "CLICK";
+        Actions.StopAll = false; r.Used++; try { Rules.Save(); } catch { }
+        Toast("Aura", await Actions.Run(new Ai.Intent(kind, r.Suggest), fg, guardLeft: true));
+    }
     public void Toast(string title, string text) => _tray?.ShowBalloonTip(4000, title, text, Forms.ToolTipIcon.Info);
     public static void OpenPath(string p) { try { Process.Start(new ProcessStartInfo(p) { UseShellExecute = true }); } catch { } }
     /// v0.5.0 «Под курсором» (no hooks): read the control under the mouse ONCE, on hotkey/button press → remember it.

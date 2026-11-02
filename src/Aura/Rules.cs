@@ -87,7 +87,7 @@ public static class Rules
                 App.Current.LastSuggestion = (r, fg);
                 r.Shown++; try { Save(); } catch { }
                 if (App.Current.Settings.RulesQuiet) { System.Media.SystemSounds.Asterisk.Play(); App.Current.TrayHint($"Подсказка: «{r.Suggest}»"); }
-                else App.Current.Toast("Aura · подсказка", $"Вижу «{r.When}» в {fg.Process}. Предлагаю нажать «{r.Suggest}» — открой Aura ({App.Current.HotkeyName}) и нажми ▶. Сам не жму.");
+                else App.Current.ToastHint("Aura · подсказка", $"Вижу «{r.When}» в {fg.Process}. Нажать «{r.Suggest}»? Кликни сюда — «Делаю» 1 с + Стоп. Или {App.Current.HotkeyName} → ▶. Сам не жму.");
                 break;
             }
         }

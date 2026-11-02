@@ -149,7 +149,7 @@ public partial class OverlayWindow : Window
         if (App.Current.Settings.IsExcluded(_fg.Process)) { FindInfo.Text = "Приложение в исключениях — не нажимаю."; return; }
         if (App.Current.ActionCts != null) { FindInfo.Text = "Уже выполняется другое действие — дождись или Стоп."; return; } // v0.6.1
         var t = _sel;
-        _acting = true;
+        _acting = true; Actions.StopAll = false; // v0.9.3: an old Стоп/Esc must not silently cancel a NEW explicit press
         var cts = new CancellationTokenSource(); App.Current.ActionCts = cts;
         PressBtn.IsEnabled = false; StopBtn.Visibility = Visibility.Visible;
         App.Current.Look.SetDoing(t.Label); App.Current.Look.Show();

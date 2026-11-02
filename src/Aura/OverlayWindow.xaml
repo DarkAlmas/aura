@@ -72,6 +72,12 @@
               <TextBox x:Name="AskBox" Margin="0,0,80,0" Padding="4,3" FontSize="12" TextWrapping="Wrap" AcceptsReturn="False" KeyDown="AskBox_KeyDown" ToolTip="Напр.: «нажми Войти дважды», «открой блокнот», «что тут можно сделать?»"/>
               <Button x:Name="AskBtn" Style="{StaticResource Ghost}" HorizontalAlignment="Right" Click="Ask_Click"><TextBlock Text="Спросить" Foreground="{StaticResource Accent}"/></Button>
             </Grid>
+            <WrapPanel Margin="0,4,0,0">
+              <Button Style="{StaticResource Ghost}" Tag="Что тут можно сделать? Предложи 3 полезных действия." Click="AiChip_Click"><TextBlock Text="Что тут можно?" FontSize="11" Foreground="{StaticResource Muted}"/></Button>
+              <Button Style="{StaticResource Ghost}" Tag="Предложи 2-3 правила «вижу → предложить» для этого приложения (команды RULE)." Click="AiChip_Click"><TextBlock Text="💡 Правила" FontSize="11" Foreground="{StaticResource Muted}"/></Button>
+              <Button Style="{StaticResource Ghost}" Tag="Какие кнопки здесь стоит запомнить? Предложи REMEMBER для самых частых." Click="AiChip_Click"><TextBlock Text="Что запомнить?" FontSize="11" Foreground="{StaticResource Muted}"/></Button>
+              <Button Style="{StaticResource Ghost}" Tag="Объясни простыми словами, что это за окно и что в нём главное." Click="AiChip_Click"><TextBlock Text="Объясни окно" FontSize="11" Foreground="{StaticResource Muted}"/></Button>
+            </WrapPanel>
             <ScrollViewer x:Name="AiScroll" Margin="0,6,0,0" MaxHeight="180" VerticalScrollBarVisibility="Auto"><TextBlock x:Name="AiReply" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Text}"/></ScrollViewer>
             <ListBox x:Name="IntentList" Margin="0,6,0,0" MaxHeight="110" FontSize="12" SelectionMode="Multiple" Visibility="Collapsed"/>
             <WrapPanel x:Name="IntentBar" Margin="0,4,0,0" Visibility="Collapsed">

@@ -54,6 +54,16 @@ public partial class App : Application
             var d = new Microsoft.Win32.SaveFileDialog { FileName = "aura-buttons.json", Filter = "JSON|*.json" };
             if (d.ShowDialog() == true) try { Toast("Aura", $"Экспортировано: {Buttons.Export(d.FileName)} (без картинок)."); } catch (Exception ex) { Toast("Aura", "Ошибка экспорта: " + ex.Message); }
         });
+        menu.Items.Add("Экспорт правил…", null, (_, _) =>
+        {
+            var d = new Microsoft.Win32.SaveFileDialog { FileName = "aura-rules.json", Filter = "JSON|*.json" };
+            if (d.ShowDialog() == true) try { Toast("Aura", $"Правил экспортировано: {Rules.Export(d.FileName)}."); } catch (Exception ex) { Toast("Aura", "Ошибка: " + ex.Message); }
+        });
+        menu.Items.Add("Импорт правил…", null, (_, _) =>
+        {
+            var d = new Microsoft.Win32.OpenFileDialog { Filter = "JSON|*.json" };
+            if (d.ShowDialog() == true) try { Toast("Aura", $"Новых правил: {Rules.Import(d.FileName)} (только подсказки)."); } catch (Exception ex) { Toast("Aura", "Ошибка: " + ex.Message); }
+        });
         menu.Items.Add("Импорт кнопок…", null, (_, _) =>
         {
             var d = new Microsoft.Win32.OpenFileDialog { Filter = "JSON|*.json" };

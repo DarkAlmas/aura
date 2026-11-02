@@ -269,6 +269,7 @@ public partial class OverlayWindow : Window
         else { AiReply.Text = "Свой URL/модель — в settings.json (AiBaseUrl, AiModel). Ключ: впиши \"AiKey\" — при запуске Aura зашифрует его (DPAPI) и удалит открытый текст."; App.OpenPath(Settings.Dir); }
         st.Save();
     }
+    void AiChip_Click(object s, RoutedEventArgs e) { if (s is FrameworkElement f && f.Tag is string q) { AskBox.Text = q; Ask_Click(s, e); } } // v0.6.2 quick prompts (still need «ИИ (сеть)»)
     void AskBox_KeyDown(object s, KeyEventArgs e) { if (e.Key == Key.Enter) { Ask_Click(s, e); e.Handled = true; } }
     async void Ask_Click(object s, RoutedEventArgs e)
     {

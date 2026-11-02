@@ -34,6 +34,14 @@ public static class Rules
     public static void Add(Rule r) { List().Add(r); Save(); }
     public static void Remove(Rule r) { List().Remove(r); Save(); }
 
+    public static int Export(string path) { File.WriteAllText(path, JsonSerializer.Serialize(List(), Opt)); return List().Count; }
+    public static int Import(string path)
+    {
+        var src = JsonSerializer.Deserialize<List<Rule>>(File.ReadAllText(path)) ?? new(); int n = 0;
+        foreach (var r in src.Where(r => r.When.Trim().Length > 0 && r.Suggest.Trim().Length > 0))
+            if (!List().Any(x => x.When == r.When && x.Suggest == r.Suggest && x.Process == r.Process)) { List().Add(r); n++; }
+        Save(); Sync(); return n;
+    }
     public static IEnumerable<Rule> For(string process) => List().Where(r => r.Enabled && r.When.Length > 0 && r.Suggest.Length > 0 &&
         (r.Process.Length == 0 || string.Equals(r.Process, process, StringComparison.OrdinalIgnoreCase)));
 

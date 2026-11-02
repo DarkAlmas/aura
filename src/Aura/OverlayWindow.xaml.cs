@@ -410,7 +410,7 @@ public partial class OverlayWindow : Window
     {
         var w = RuleWhen.Text.Trim(); var g = RuleSuggest.Text.Trim();
         if (w.Length < 2 || g.Length == 0) { RuleWhen.Focus(); RuleWhen.ToolTip = "«Вижу» — минимум 2 символа, «предложить» — не пусто."; return; }
-        Rules.Add(new Rule { When = w, Suggest = g, Process = RuleThisApp.IsChecked == true && _fg != null ? _fg.Process : "" });
+        if (Rules.Add(new Rule { When = w, Suggest = g, Process = RuleThisApp.IsChecked == true && _fg != null ? _fg.Process : "" }) is string why) { RuleWhen.ToolTip = why; App.Current.Toast("Aura", why); return; }
         RuleWhen.Text = RuleSuggest.Text = ""; LoadRules(); Rules.Sync();
     }
     void RuleToggle_Click(object s, RoutedEventArgs e) { if (RuleList.SelectedItem is Rule r) { r.Enabled = !r.Enabled; Rules.Save(); LoadRules(); Rules.Sync(); } }

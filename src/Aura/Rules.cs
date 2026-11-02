@@ -35,15 +35,16 @@ public static class Rules
     }
     public static void Save() => Settings.AtomicWrite(FilePath, JsonSerializer.Serialize(List(), Opt));
     // v0.6.5: trim; «вижу» must be ≥2 chars (empty would match every window); no duplicates
-    public static void Add(Rule r)
+    public static string? Add(Rule r) // v0.9.16: null = added, else why not
     {
         r.When = (r.When ?? "").Trim(); r.Suggest = (r.Suggest ?? "").Trim();
-        if (r.When.Length < 2 || r.Suggest.Length == 0) return;
+        if (r.When.Length < 2 || r.Suggest.Length == 0) return "«Вижу» — минимум 2 символа, «предложить» — не пусто.";
         // v0.9.15: bounded — long text trimmed, max 200 rules, never for an excluded app
         if (r.When.Length > 100) r.When = r.When[..100]; if (r.Suggest.Length > 60) r.Suggest = r.Suggest[..60];
-        if (List().Count >= 200 || (!string.IsNullOrEmpty(r.Process) && App.Current.Settings.IsExcluded(r.Process))) return;
-        if (List().Any(x => x.When == r.When && x.Suggest == r.Suggest && x.Process == r.Process)) return;
-        List().Add(r); Save();
+        if (List().Count >= 200) return "Уже 200 правил — удалите лишние.";
+        if (!string.IsNullOrEmpty(r.Process) && App.Current.Settings.IsExcluded(r.Process)) return $"{r.Process} в исключениях — правило не создаю.";
+        if (List().Any(x => x.When == r.When && x.Suggest == r.Suggest && x.Process == r.Process)) return "Такое правило уже есть.";
+        List().Add(r); Save(); return null;
     }
     public static void Remove(Rule r) { List().Remove(r); Save(); }
 

@@ -105,11 +105,13 @@ public static class Actions
     }
 
     /// «При старте»: only if StartupOptIn. 2 s after launch, toast, then each item in order. Clicks still use «Делаю» 1 с + Стоп.
-    public static async Task RunStartup()
+    // v0.7.4: manual «Проверить» passes manual:true instead of flipping StartupOptIn (which could get saved as ON)
+    public static bool UrlOk(string url) => Uri.TryCreate((url ?? "").Trim(), UriKind.Absolute, out var u) && (u.Scheme == Uri.UriSchemeHttp || u.Scheme == Uri.UriSchemeHttps) && string.IsNullOrEmpty(u.UserInfo) && !url!.Trim().Any(char.IsWhiteSpace);
+    public static async Task RunStartup(bool manual = false)
     {
         var st = App.Current.Settings;
-        if (!st.StartupOptIn || st.StartupActions.Count == 0) return;
-        await Task.Delay(2000);
+        if ((!st.StartupOptIn && !manual) || st.StartupActions.Count == 0) return;
+        await Task.Delay(manual ? 300 : 2000);
         if (st.Paused) return;
         App.Current.Toast("Aura · При старте", $"Выполняю {st.StartupActions.Count} действ. (Пауза — отмена).");
         StopAll = false;

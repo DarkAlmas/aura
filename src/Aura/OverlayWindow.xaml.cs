@@ -427,6 +427,10 @@ public partial class OverlayWindow : Window
     {
         var arg = StartArg.Text.Trim(); if (arg.Length == 0) return;
         var kind = new[] { "LaunchExe", "OpenUrl", "RunButton", "Wait" }[Math.Max(0, StartKind.SelectedIndex)];
+        // v0.7.4: validate on add with the same LAUNCH/OPEN policy used at run time
+        if (kind == "LaunchExe" && Actions.LaunchProblem(arg, false) is { } bad) { StartArg.ToolTip = bad; StartArg.Focus(); App.Current.Toast("Aura", bad); return; }
+        if (kind == "OpenUrl" && !Actions.UrlOk(arg)) { App.Current.Toast("Aura", "Только http/https ссылки."); StartArg.Focus(); return; }
+        if (kind == "Wait" && !int.TryParse(arg, out _)) { App.Current.Toast("Aura", "Ожидание — число секунд (1–30)."); StartArg.Focus(); return; }
         App.Current.Settings.StartupActions.Add(new StartupAction { Kind = kind, Arg = arg }); App.Current.Settings.Save(); StartArg.Text = ""; LoadStartup();
     }
     void StartDel_Click(object s, RoutedEventArgs e)
@@ -436,8 +440,8 @@ public partial class OverlayWindow : Window
     }
     async void StartRun_Click(object s, RoutedEventArgs e)
     {
-        var st = App.Current.Settings; bool was = st.StartupOptIn; st.StartupOptIn = true; _acting = true;
-        try { SafeClose(); await Actions.RunStartup(); } finally { st.StartupOptIn = was; _acting = false; }
+        _acting = true;
+        try { SafeClose(); await Actions.RunStartup(manual: true); } finally { _acting = false; }
     }
 
     // Deferred, idempotent close: safe from any event handler.

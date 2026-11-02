@@ -27,6 +27,13 @@
             <Button x:Name="PressBtn" Style="{StaticResource Ghost}" Click="Press_Click" IsEnabled="False"><TextBlock Text="Нажать" FontWeight="SemiBold" Foreground="{StaticResource Accent}"/></Button>
             <Button x:Name="StopBtn" Style="{StaticResource Ghost}" Click="Stop_Click" Visibility="Collapsed"><TextBlock Text="Стоп" Foreground="OrangeRed"/></Button>
             <Button x:Name="RememberBtn" Style="{StaticResource Ghost}" Click="Remember_Click" IsEnabled="False"><TextBlock Text="Запомнить" Foreground="{StaticResource Accent}"/></Button>
+            <ComboBox x:Name="ActCombo" Margin="6,2,0,0" FontSize="11" Width="92" SelectedIndex="0" ToolTip="Что делать с кнопкой (Нажать / действовать / серия)" SelectionChanged="ActCombo_Changed">
+              <ComboBoxItem Content="Клик"/><ComboBoxItem Content="Двойной"/><ComboBoxItem Content="Правый (ПКМ)"/>
+            </ComboBox>
+          </WrapPanel>
+          <WrapPanel Margin="36,6,0,0">
+            <Button Style="{StaticResource Ghost}" Click="UnderCursor_Click" ToolTip="Без хуков: через 3 с прочитаю кнопку под мышью (UIA, или OCR рядом с курсором) и запомню. Хоткей — сразу."><TextBlock x:Name="UnderText" Text="🖱 Под курсором" Foreground="{StaticResource Accent}"/></Button>
+            <CheckBox x:Name="TplChk" Margin="8,4,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="запомнить картинку" ToolTip="Сохраню маленький PNG кнопки (≤120×60) в %AppData%\Aura\templates — для поиска по картинке, если нет ни UIA, ни текста." Click="TplChk_Click"/>
           </WrapPanel>
         </StackPanel>
       </Border>
@@ -43,13 +50,55 @@
           <WrapPanel x:Name="BtnBar" Margin="36,6,0,0" Visibility="Collapsed">
             <Button Style="{StaticResource Ghost}" Click="BtnDelete_Click"><TextBlock Text="Удалить" Foreground="{StaticResource Muted}"/></Button>
             <Button Style="{StaticResource Ghost}" Click="BtnClear_Click"><TextBlock Text="Очистить всё" Foreground="{StaticResource Muted}"/></Button>
+            <Button Style="{StaticResource Ghost}" Click="BtnRun_Click"><TextBlock Text="▶ Нажать" Foreground="{StaticResource Accent}"/></Button>
+            <Button Style="{StaticResource Ghost}" Click="BtnSeries_Click" ToolTip="Все выученные кнопки этого окна по порядку, каждая с «Делаю» 1 с"><TextBlock Text="⏩ Серия" Foreground="{StaticResource Accent}"/></Button>
+            <Button Style="{StaticResource Ghost}" Click="BtnStartup_Click" ToolTip="Добавить выбранную кнопку в «При старте»"><TextBlock Text="+ при старте" Foreground="{StaticResource Muted}"/></Button>
           </WrapPanel>
         </StackPanel>
+      </Border>
+      <Border CornerRadius="12" Padding="12" Background="{StaticResource CardBg}" Margin="0,8,0,0">
+        <Expander x:Name="AiExp" IsExpanded="False">
+          <Expander.Header><StackPanel Orientation="Horizontal"><TextBlock Text="🤖" FontSize="16" Width="30"/><TextBlock Text="ИИ — скажи что сделать" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource Text}"/></StackPanel></Expander.Header>
+          <StackPanel Margin="6,6,0,0">
+            <WrapPanel>
+              <CheckBox x:Name="AiChk" FontSize="11" Foreground="{StaticResource Muted}" Content="ИИ (сеть)" ToolTip="Выкл. по умолчанию. Только при «Спросить»: имя приложения, заголовок, имена выученных кнопок и твой запрос → ИИ (как в circuit: бесплатный Groq-прокси или Ollama)." Click="AiChk_Click"/>
+              <CheckBox x:Name="AiTextChk" Margin="8,0,0,0" FontSize="11" Foreground="{StaticResource Muted}" Content="приложить текст окна (OCR)" Click="AiChk_Click"/>
+              <ComboBox x:Name="AiBackend" Margin="8,-2,0,0" FontSize="11" Width="96" SelectionChanged="AiBackend_Changed"><ComboBoxItem Content="Groq-прокси"/><ComboBoxItem Content="Ollama"/><ComboBoxItem Content="свой URL"/></ComboBox>
+            </WrapPanel>
+            <Grid Margin="0,6,0,0">
+              <TextBox x:Name="AskBox" Margin="0,0,80,0" Padding="4,3" FontSize="12" TextWrapping="Wrap" AcceptsReturn="False" KeyDown="AskBox_KeyDown" ToolTip="Напр.: «нажми Войти дважды», «открой блокнот», «что тут можно сделать?»"/>
+              <Button x:Name="AskBtn" Style="{StaticResource Ghost}" HorizontalAlignment="Right" Click="Ask_Click"><TextBlock Text="Спросить" Foreground="{StaticResource Accent}"/></Button>
+            </Grid>
+            <TextBlock x:Name="AiReply" Margin="0,6,0,0" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Text}" MaxHeight="160"/>
+            <ListBox x:Name="IntentList" Margin="0,6,0,0" MaxHeight="110" FontSize="12" SelectionMode="Multiple" Visibility="Collapsed"/>
+            <WrapPanel x:Name="IntentBar" Margin="0,4,0,0" Visibility="Collapsed">
+              <Button Style="{StaticResource Ghost}" Click="RunIntents_Click"><TextBlock Text="Выполнить отмеченные" FontWeight="SemiBold" Foreground="{StaticResource Accent}"/></Button>
+            </WrapPanel>
+          </StackPanel>
+        </Expander>
+      </Border>
+      <Border CornerRadius="12" Padding="12" Background="{StaticResource CardBg}" Margin="0,8,0,0">
+        <Expander x:Name="StartExp" IsExpanded="False">
+          <Expander.Header><StackPanel Orientation="Horizontal"><TextBlock Text="⚡" FontSize="16" Width="30"/><TextBlock Text="При старте Aura" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource Text}"/></StackPanel></Expander.Header>
+          <StackPanel Margin="6,6,0,0">
+            <CheckBox x:Name="StartChk" FontSize="11" Foreground="{StaticResource Muted}" Content="выполнять при запуске Aura (клики — с «Делаю» 1 с)" Click="StartChk_Click"/>
+            <Grid Margin="0,6,0,0">
+              <ComboBox x:Name="StartKind" Width="96" HorizontalAlignment="Left" FontSize="11" SelectedIndex="0"><ComboBoxItem Content="Запустить"/><ComboBoxItem Content="Открыть URL"/><ComboBoxItem Content="Нажать"/><ComboBoxItem Content="Ждать, с"/></ComboBox>
+              <TextBox x:Name="StartArg" Margin="100,0,70,0" Padding="4,2" FontSize="12" ToolTip="Путь к .exe / https://… / имя выученной кнопки / секунды"/>
+              <Button Style="{StaticResource Ghost}" HorizontalAlignment="Right" Click="StartAdd_Click"><TextBlock Text="Добавить" Foreground="{StaticResource Accent}"/></Button>
+            </Grid>
+            <ListBox x:Name="StartList" Margin="0,6,0,0" MaxHeight="110" FontSize="12"/>
+            <WrapPanel Margin="0,4,0,0">
+              <Button Style="{StaticResource Ghost}" Click="StartDel_Click"><TextBlock Text="Удалить" Foreground="{StaticResource Muted}"/></Button>
+              <Button Style="{StaticResource Ghost}" Click="StartRun_Click"><TextBlock Text="▶ Проверить сейчас" Foreground="{StaticResource Accent}"/></Button>
+            </WrapPanel>
+          </StackPanel>
+        </Expander>
       </Border>
       <Grid Margin="0,10,0,0">
         <Border CornerRadius="6" Background="#10FFFFFF" Padding="6,2" HorizontalAlignment="Left">
           <TextBlock x:Name="HotkeyHint" Text="Win+Shift+Z" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource Muted}"/></Border>
-        <TextBlock x:Name="Status" HorizontalAlignment="Right" FontSize="11" Foreground="{StaticResource Muted}"/>
+        <TextBlock x:Name="Status" HorizontalAlignment="Right" Margin="0,0,0,0" FontSize="11" Foreground="{StaticResource Muted}"/>
       </Grid>
     </StackPanel>
   </Border>

@@ -55,6 +55,70 @@ public static class OcrFinder
         return all.FirstOrDefault(t => Norm(t.Name) == n);
     }
 
+    /// One in-memory capture of a screen rect, 2× upscale, OCR. Bitmap disposed, never written to disk.
+    static async Task<(OcrResult, double)> Recognize(OcrEngine engine, int L, int T, int w, int h)
+    {
+        using var bmp = new Bitmap(w, h, PixelFormat.Format32bppPArgb);
+        using (var g = Graphics.FromImage(bmp)) g.CopyFromScreen(L, T, 0, 0, new Size(w, h));
+        double S = Math.Min(2.0, (double)OcrEngine.MaxImageDimension / Math.Max(w, h)); if (S < 1) S = 1;
+        int sw = (int)(w * S), shh = (int)(h * S);
+        using var big = new Bitmap(sw, shh, PixelFormat.Format32bppPArgb);
+        using (var g2 = Graphics.FromImage(big)) { g2.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBilinear; g2.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half; g2.DrawImage(bmp, 0, 0, sw, shh); }
+        var data = big.LockBits(new Rectangle(0, 0, sw, shh), ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
+        var bytes = new byte[data.Stride * shh];
+        try { Marshal.Copy(data.Scan0, bytes, 0, bytes.Length); } finally { big.UnlockBits(data); }
+        using var sb = SoftwareBitmap.CreateCopyFromBuffer(bytes.AsBuffer(), BitmapPixelFormat.Bgra8, sw, shh, BitmapAlphaMode.Premultiplied);
+        Array.Clear(bytes);
+        return (await engine.RecognizeAsync(sb), S);
+    }
+
+    /// v0.5.0 (Hack INFO fix): ONE capture, only exact matches for the given learned names — never an empty query / full word dump.
+    public static async Task<List<UiaFinder.Target>?> FindNames(IntPtr hwnd, IEnumerable<string> names)
+    {
+        var want = names.Select(Norm).Where(n => n.Length > 0).ToHashSet();
+        if (want.Count == 0) return new();
+        var engine = CreateEngine(); if (engine == null) return null;
+        if (!GetWindowRect(hwnd, out var wr)) return new();
+        int w = Math.Min(wr.R - wr.L, 8000), h = Math.Min(wr.B - wr.T, 8000);
+        if (w < 8 || h < 8) return new();
+        var (result, S) = await Recognize(engine, wr.L, wr.T, w, h);
+        var res = new List<UiaFinder.Target>();
+        foreach (var line in result.Lines)
+        {
+            if (line.Words.Count == 0) continue;
+            if (want.Contains(Norm(line.Text)))
+            {
+                double x1 = line.Words.Min(x => x.BoundingRect.X), y1 = line.Words.Min(x => x.BoundingRect.Y);
+                double x2 = line.Words.Max(x => x.BoundingRect.X + x.BoundingRect.Width), y2 = line.Words.Max(x => x.BoundingRect.Y + x.BoundingRect.Height);
+                res.Add(new UiaFinder.Target(line.Text.Trim(), "", "OCR", Pad(new System.Windows.Rect(wr.L + x1 / S, wr.T + y1 / S, (x2 - x1) / S, (y2 - y1) / S), wr), null));
+                continue;
+            }
+            foreach (var wd in line.Words)
+                if (want.Contains(Norm(wd.Text)))
+                { var r = wd.BoundingRect; res.Add(new UiaFinder.Target(wd.Text.Trim(), "", "OCR", Pad(new System.Windows.Rect(wr.L + r.X / S, wr.T + r.Y / S, r.Width / S, r.Height / S), wr), null)); }
+        }
+        return res;
+    }
+
+    /// v0.5.0 «Под курсором» fallback: OCR of a small 360×120 crop around the cursor (memory only) → the word/line nearest to it.
+    public static async Task<UiaFinder.Target?> AtPoint(int px, int py)
+    {
+        var engine = CreateEngine(); if (engine == null) return null;
+        int w = 360, h = 120, L = px - w / 2, T = py - h / 2;
+        var (result, S) = await Recognize(engine, L, T, w, h);
+        var box = new RECT { L = L, T = T, R = L + w, B = T + h };
+        UiaFinder.Target? best = null; double bd = double.MaxValue;
+        foreach (var line in result.Lines)
+            foreach (var wd in line.Words)
+            {
+                var r = wd.BoundingRect; var b = new System.Windows.Rect(L + r.X / S, T + r.Y / S, r.Width / S, r.Height / S);
+                var txt = wd.Text.Trim(); if (txt.Length < 2) continue;
+                double dx = Math.Max(0, Math.Max(b.Left - px, px - b.Right)), dy = Math.Max(0, Math.Max(b.Top - py, py - b.Bottom)), d = dx * dx + dy * dy;
+                if (d < bd) { bd = d; best = new UiaFinder.Target(txt, "", "OCR", Pad(b, box), null); }
+            }
+        return bd <= 40 * 40 ? best : null;
+    }
+
     /// Returns null if the engine is missing (no OCR language pack). `exclude` = overlay rect (physical px) to skip.
     public static async Task<List<UiaFinder.Target>?> Find(IntPtr hwnd, string q, System.Windows.Rect exclude)
     {
@@ -64,23 +128,7 @@ public static class OcrFinder
         int w = Math.Min(wr.R - wr.L, 8000), h = Math.Min(wr.B - wr.T, 8000);
         if (w < 8 || h < 8) return new();
 
-        OcrResult result; double S = 1;
-        using (var bmp = new Bitmap(w, h, PixelFormat.Format32bppPArgb))
-        {
-            using (var g = Graphics.FromImage(bmp)) g.CopyFromScreen(wr.L, wr.T, 0, 0, new Size(w, h));
-            // v0.4.1: upscale 2× (memory only) so small text is recognised; clamp to OCR engine max dimension.
-            S = Math.Min(2.0, (double)OcrEngine.MaxImageDimension / Math.Max(w, h)); if (S < 1) S = 1;
-            int sw = (int)(w * S), shh = (int)(h * S);
-            using var big = new Bitmap(sw, shh, PixelFormat.Format32bppPArgb);
-            using (var g2 = Graphics.FromImage(big)) { g2.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBilinear; g2.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half; g2.DrawImage(bmp, 0, 0, sw, shh); }
-            var data = big.LockBits(new Rectangle(0, 0, sw, shh), ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
-            var bytes = new byte[data.Stride * shh];
-            try { Marshal.Copy(data.Scan0, bytes, 0, bytes.Length); } finally { big.UnlockBits(data); }
-            using var sb = SoftwareBitmap.CreateCopyFromBuffer(bytes.AsBuffer(), BitmapPixelFormat.Bgra8, sw, shh, BitmapAlphaMode.Premultiplied);
-            Array.Clear(bytes);
-            result = await engine.RecognizeAsync(sb);
-        }
-
+        var (result, S) = await Recognize(engine, wr.L, wr.T, w, h);
         q = (q ?? "").Trim();
         var exact = new List<UiaFinder.Target>(); var part = new List<UiaFinder.Target>();
         foreach (var line in result.Lines)

@@ -1,0 +1,108 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace Aura;
+
+/// v0.5.0 «При старте» item: LaunchExe | OpenUrl | RunButton (name of a learned button) | Wait (seconds).
+public sealed class StartupAction
+{
+    public string Kind { get; set; } = "LaunchExe";
+    public string Arg { get; set; } = "";
+    public override string ToString() => Kind switch
+    {
+        "LaunchExe" => "▶ Запустить: " + Arg, "OpenUrl" => "🌐 Открыть: " + Arg, "RunButton" => "🖱 Нажать: «" + Arg + "»",
+        "Wait" => "⏱ Ждать " + Arg + " с", _ => Kind + " " + Arg
+    };
+}
+
+/// Executes one confirmed intent (from AI or «При старте»/«Серия»). Every click goes through Buttons.DoWithCountdown («Делаю» 1 с + Стоп).
+public static class Actions
+{
+    public static async Task<string> Run(Ai.Intent it, Native.WindowInfo? fg)
+    {
+        var st = App.Current.Settings;
+        if (st.Paused) return "Пауза — не выполняю.";
+        switch (it.Kind)
+        {
+            case "LAUNCH": return Launch(it.Arg);
+            case "OPEN": return Open(it.Arg);
+            case "WAIT": if (int.TryParse(it.Arg, out var sec)) await Task.Delay(Math.Clamp(sec, 1, 30) * 1000); return "Подождал.";
+        }
+        if (fg == null || !Native.IsWindow(fg.Hwnd)) return "Нет окна для действия.";
+        if (st.IsExcluded(fg.Process)) return "Приложение в исключениях.";
+        var hit = await Locate(it.Arg, fg);
+        if (hit == null) return $"Не нашёл «{it.Arg}» в {fg.Process}.";
+        var learned = Buttons.ByName(it.Arg, fg.Process);
+        switch (it.Kind)
+        {
+            case "FIND": App.Current.Toast("Aura", $"Нашёл «{hit.Label}» ({hit.Type})."); return $"Нашёл «{hit.Label}».";
+            case "REMEMBER":
+                var b = Buttons.Remember(fg.Process, hit, ClickAction.Click, st.SaveTemplates);
+                return b == null ? "Не запомнил." : $"Запомнил «{b.Label}».";
+            default:
+                var act = it.Kind == "DOUBLECLICK" ? ClickAction.DoubleClick : it.Kind == "RIGHTCLICK" ? ClickAction.RightClick : learned?.Action ?? ClickAction.Click;
+                var how = await Buttons.DoWithCountdown(hit, act, fg.Hwnd);
+                return how == null ? "Остановлено." : $"Нажал «{hit.Label}» ({how}).";
+        }
+    }
+
+    public static async Task<UiaFinder.Target?> Locate(string name, Native.WindowInfo fg)
+    {
+        var uia = await Task.Run(() => UiaFinder.Enumerate(fg.Hwnd));
+        var lb = Buttons.ByName(name, fg.Process);
+        if (lb != null) { var h = await Buttons.Locate(lb, fg.Hwnd, uia); if (h != null) return h; }
+        var m = UiaFinder.Match(uia, name);
+        if (m.Count > 0) return m[0];
+        if (App.Current.Settings.ScreenCaptureOptIn && OcrFinder.Available)
+        {
+            var o = await OcrFinder.Find(fg.Hwnd, name, System.Windows.Rect.Empty);
+            if (o != null && o.Count > 0) return o[0];
+        }
+        return null;
+    }
+
+    public static string Launch(string path)
+    {
+        try { Process.Start(new ProcessStartInfo(Environment.ExpandEnvironmentVariables(path.Trim('"'))) { UseShellExecute = true }); return "Запустил " + path; }
+        catch (Exception ex) { return "Не запустил: " + ex.Message; }
+    }
+    public static string Open(string url)
+    {
+        if (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) return "Только http/https ссылки.";
+        try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); return "Открыл " + url; }
+        catch (Exception ex) { return "Не открыл: " + ex.Message; }
+    }
+
+    /// «При старте»: only if StartupOptIn. 2 s after launch, toast, then each item in order. Clicks still use «Делаю» 1 с + Стоп.
+    public static async Task RunStartup()
+    {
+        var st = App.Current.Settings;
+        if (!st.StartupOptIn || st.StartupActions.Count == 0) return;
+        await Task.Delay(2000);
+        if (st.Paused) return;
+        App.Current.Toast("Aura · При старте", $"Выполняю {st.StartupActions.Count} действ. (Пауза — отмена).");
+        foreach (var a in st.StartupActions.ToList())
+        {
+            if (App.Current.Settings.Paused) return;
+            var it = a.Kind switch { "LaunchExe" => new Ai.Intent("LAUNCH", a.Arg), "OpenUrl" => new Ai.Intent("OPEN", a.Arg), "Wait" => new Ai.Intent("WAIT", a.Arg), _ => new Ai.Intent("CLICK", a.Arg) };
+            var fg = Native.Foreground();
+            await Run(it, fg != null && fg.Pid != Environment.ProcessId ? fg : null);
+            await Task.Delay(Math.Clamp(st.StepDelayMs, 200, 10000));
+        }
+    }
+
+    /// «Серия»: run selected learned buttons one after another in the current foreground window, each with «Делаю».
+    public static async Task RunSeries(IEnumerable<LearnedButton> list, Native.WindowInfo fg)
+    {
+        foreach (var b in list)
+        {
+            if (App.Current.Settings.Paused) return;
+            var r = await Run(new Ai.Intent(b.Action == ClickAction.DoubleClick ? "DOUBLECLICK" : b.Action == ClickAction.RightClick ? "RIGHTCLICK" : "CLICK", b.Name), fg);
+            if (r.StartsWith("Остановлено")) return;
+            await Task.Delay(Math.Clamp(App.Current.Settings.StepDelayMs, 200, 10000));
+        }
+    }
+}

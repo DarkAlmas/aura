@@ -21,6 +21,26 @@ public static class UiaFinder
         ControlType.CheckBox, ControlType.RadioButton, ControlType.ListItem, ControlType.SplitButton, ControlType.TreeItem
     };
 
+    public static readonly HashSet<ControlType> ClickableSet = new(Clickable);
+
+    /// v0.5.0 «Под курсором»: UIA element at a screen point; walks up to the nearest clickable named ancestor.
+    public static Target? AtPoint(Point p)
+    {
+        try
+        {
+            var el = AutomationElement.FromPoint(p);
+            for (int i = 0; el != null && i < 6; i++)
+            {
+                var c = el.Current;
+                if (ClickableSet.Contains(c.ControlType) && !string.IsNullOrWhiteSpace(c.Name) && !c.BoundingRectangle.IsEmpty)
+                    return new Target(c.Name, c.AutomationId ?? "", c.LocalizedControlType ?? "", c.BoundingRectangle, el);
+                el = TreeWalker.ControlViewWalker.GetParent(el);
+            }
+        }
+        catch { }
+        return null;
+    }
+
     public static List<Target> Enumerate(IntPtr hwnd, int max = 400)
     {
         var res = new List<Target>();
@@ -63,11 +83,12 @@ public static class UiaFinder
     }
 
     /// Single click on one confirmed target: Invoke/Toggle/Select pattern, else one SendInput click at its clickable point.
-    public static string Click(Target t)
+    public static string Click(Target t, ClickAction act = ClickAction.Click)
     {
         var el = t.Element;
-        if (el == null) { Native.ClickAt((int)(t.Bounds.X + t.Bounds.Width / 2), (int)(t.Bounds.Y + t.Bounds.Height / 2)); return "мышь (OCR)"; }
-        try
+        string an = act == ClickAction.DoubleClick ? "двойной" : act == ClickAction.RightClick ? "правый" : "мышь";
+        if (el == null) { Native.ActAt((int)(t.Bounds.X + t.Bounds.Width / 2), (int)(t.Bounds.Y + t.Bounds.Height / 2), act); return an + (t.Type == "OCR" ? " (OCR)" : " (картинка)"); }
+        if (act == ClickAction.Click) try
         {
             if (el.TryGetCurrentPattern(InvokePattern.Pattern, out var p)) { ((InvokePattern)p).Invoke(); return "Invoke"; }
             if (el.TryGetCurrentPattern(TogglePattern.Pattern, out p)) { ((TogglePattern)p).Toggle(); return "Toggle"; }
@@ -78,7 +99,7 @@ public static class UiaFinder
         Point pt;
         try { if (!el.TryGetClickablePoint(out pt)) pt = new Point(t.Bounds.X + t.Bounds.Width / 2, t.Bounds.Y + t.Bounds.Height / 2); }
         catch { pt = new Point(t.Bounds.X + t.Bounds.Width / 2, t.Bounds.Y + t.Bounds.Height / 2); }
-        Native.ClickAt((int)pt.X, (int)pt.Y);
-        return "мышь";
+        Native.ActAt((int)pt.X, (int)pt.Y, act);
+        return an;
     }
 }

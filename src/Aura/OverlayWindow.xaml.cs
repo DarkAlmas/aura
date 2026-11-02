@@ -24,6 +24,13 @@ public partial class OverlayWindow : Window
         Status.Text = App.Current.Settings.ScreenCaptureOptIn ? "OCR: по запросу" : "OCR выкл.";
         if (App.Current.Learning && fg != null && App.Current.Settings.IsExcluded(fg.Process)) { App.Current.Learning = false; App.Current.Toast("Aura", "Учусь выключен: приложение в исключениях."); }
         SyncLearn(); LoadButtons();
+        var st = App.Current.Settings;
+        ActCombo.SelectedIndex = (int)st.DefaultAction; TplChk.IsChecked = st.SaveTemplates;
+        AiChk.IsChecked = st.AiOptIn; AiTextChk.IsChecked = st.AiAttachText;
+        _aiInit = true; AiBackend.SelectedIndex = st.AiBaseUrl == Ai.ProxyBase ? 0 : st.AiBaseUrl == Ai.OllamaBase ? 1 : 2; _aiInit = false;
+        StartChk.IsChecked = st.StartupOptIn; LoadStartup();
+        UnderText.Text = "🖱 Под курсором (" + App.Current.UnderCursorHotkey + ")";
+        Status.Text = "v" + App.Version + " · " + Status.Text;
         Loaded += (_, _) => { var wa = SystemParameters.WorkArea; Left = wa.Right - ActualWidth - 8; Top = wa.Bottom - ActualHeight - 8; };
         // Never Close() synchronously from activation events (WmActivate re-entrancy crash in v0.1.0).
         ContentRendered += (_, _) => _armed = true;
@@ -136,8 +143,10 @@ public partial class OverlayWindow : Window
             ClearHighlight();
             Native.SetForegroundWindow(_fg.Hwnd);
             await Task.Delay(150, cts.Token);
-            var how = await Task.Run(() => UiaFinder.Click(t), cts.Token);
-            var learned = App.Current.Learning ? Buttons.Remember(_fg.Process, t) : null;
+            var act = CurAct;
+            var how = await Task.Run(() => UiaFinder.Click(t, act), cts.Token);
+            if (App.Current.Settings.ClickSound) System.Media.SystemSounds.Asterisk.Play();
+            var learned = App.Current.Learning ? Buttons.Remember(_fg.Process, t, act, App.Current.Settings.SaveTemplates) : null;
             App.Current.Toast("Aura", $"Нажал «{t.Label}» ({how})." + (learned != null ? $" Запомнил: {learned.Label}" : ""));
             _acting = false; SafeClose();
         }
@@ -176,7 +185,7 @@ public partial class OverlayWindow : Window
     void Remember_Click(object s, RoutedEventArgs e)
     {
         if (_sel == null || _fg == null) return;
-        var b = Buttons.Remember(_fg.Process, _sel);
+        var b = Buttons.Remember(_fg.Process, _sel, CurAct, App.Current.Settings.SaveTemplates);
         LearnInfo.Text = b == null ? "Не запомнил: пустое имя или приложение в исключениях." : $"Запомнил: {b.Label} ({b.Process}).";
         if (b != null) App.Current.Toast("Aura", $"Запомнил: {b.Label}");
         LoadButtons();
@@ -195,6 +204,116 @@ public partial class OverlayWindow : Window
         Buttons.Delete(b); LoadButtons(); LearnInfo.Text = $"Забыл: {b.Label}.";
     }
     void BtnClear_Click(object s, RoutedEventArgs e) { Buttons.Clear(); LoadButtons(); LearnInfo.Text = "Список очищен."; }
+
+    // ---- v0.5.0 ----
+    bool _aiInit;
+    List<Ai.Intent>? _intents;
+    ClickAction CurAct => (ClickAction)Math.Max(0, ActCombo.SelectedIndex);
+    public void Reload() { try { LoadButtons(); } catch { } }
+    void ActCombo_Changed(object s, RoutedEventArgs e)
+    {
+        if (!IsLoaded) return;
+        App.Current.Settings.DefaultAction = CurAct; App.Current.Settings.Save();
+        if (BtnList?.SelectedItem is LearnedButton b) { b.Action = CurAct; Buttons.Update(); LoadButtons(); LearnInfo.Text = $"«{b.Label}»: действие → {ActCombo.Text}."; }
+    }
+    void TplChk_Click(object s, RoutedEventArgs e) { App.Current.Settings.SaveTemplates = TplChk.IsChecked == true; App.Current.Settings.Save(); }
+    void UnderCursor_Click(object s, RoutedEventArgs e) { SafeClose(); App.Current.RememberUnderCursor(3); }
+
+    async void BtnRun_Click(object s, RoutedEventArgs e)
+    {
+        if (BtnList.SelectedItem is not LearnedButton b) { LearnInfo.Text = "Выбери кнопку в списке."; return; }
+        if (_fg == null) { LearnInfo.Text = "Нет активного окна."; return; }
+        _acting = true; LearnInfo.Text = $"Делаю: «{b.Label}» через 1 с… (Стоп в индикаторе / Esc)";
+        try { LearnInfo.Text = await Actions.Run(new Ai.Intent(b.Action == ClickAction.DoubleClick ? "DOUBLECLICK" : b.Action == ClickAction.RightClick ? "RIGHTCLICK" : "CLICK", b.Name), _fg); }
+        finally { _acting = false; }
+    }
+    async void BtnSeries_Click(object s, RoutedEventArgs e)
+    {
+        if (_fg == null) return;
+        var l = Buttons.List().Where(b => string.Equals(b.Process, _fg.Process, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (l.Count == 0) { LearnInfo.Text = $"Для {_fg.Process} нет выученных кнопок."; return; }
+        _acting = true; LearnInfo.Text = $"Серия: {l.Count} шт., каждая с «Делаю» 1 с.";
+        try { await Actions.RunSeries(l, _fg); LearnInfo.Text = "Серия завершена."; } finally { _acting = false; }
+    }
+    void BtnStartup_Click(object s, RoutedEventArgs e)
+    {
+        if (BtnList.SelectedItem is not LearnedButton b) { LearnInfo.Text = "Выбери кнопку в списке."; return; }
+        App.Current.Settings.StartupActions.Add(new StartupAction { Kind = "RunButton", Arg = b.Name }); App.Current.Settings.Save(); LoadStartup();
+        LearnInfo.Text = $"«{b.Label}» добавлена в «При старте»."; StartExp.IsExpanded = true;
+    }
+
+    void AiChk_Click(object s, RoutedEventArgs e)
+    {
+        var st = App.Current.Settings; st.AiOptIn = AiChk.IsChecked == true; st.AiAttachText = AiTextChk.IsChecked == true; st.Save(); App.Current.SyncOcrMenu();
+    }
+    void AiBackend_Changed(object s, RoutedEventArgs e)
+    {
+        if (_aiInit) return;
+        var st = App.Current.Settings;
+        if (AiBackend.SelectedIndex == 0) { st.AiBaseUrl = Ai.ProxyBase; st.AiModel = "openai/gpt-oss-20b"; }
+        else if (AiBackend.SelectedIndex == 1) { st.AiBaseUrl = Ai.OllamaBase; if (st.AiModel.Contains('/')) st.AiModel = "qwen2.5:7b"; }
+        else { AiReply.Text = "Свой URL/модель/ключ — в settings.json (AiBaseUrl, AiModel, AiKey)."; App.OpenPath(Settings.Dir); }
+        st.Save();
+    }
+    void AskBox_KeyDown(object s, KeyEventArgs e) { if (e.Key == Key.Enter) { Ask_Click(s, e); e.Handled = true; } }
+    async void Ask_Click(object s, RoutedEventArgs e)
+    {
+        var q = AskBox.Text.Trim(); if (q.Length == 0) return;
+        var st = App.Current.Settings;
+        if (!st.AiOptIn) { AiReply.Text = "Включи «ИИ (сеть)» — без этого Aura в сеть не ходит."; return; }
+        if (st.Paused) { AiReply.Text = "Пауза."; return; }
+        AskBtn.IsEnabled = false; AiReply.Text = "Думаю…"; _acting = true;
+        try
+        {
+            string? text = null;
+            if (st.AiAttachText && st.ScreenCaptureOptIn && _fg != null && !st.IsExcluded(_fg.Process) && OcrFinder.Available)
+            {
+                var w = await OcrFinder.Find(_fg.Hwnd, "", OverlayPx());
+                if (w != null) text = string.Join(" | ", w.Where(t => t.Name.Contains(' ') || t.Name.Length > 1).Select(t => t.Name).Distinct().Take(200));
+            }
+            var fg = _fg != null && st.IsExcluded(_fg.Process) ? null : _fg;
+            var (reply, intents) = await Ai.Ask(q, fg, text);
+            AiReply.Text = reply; _intents = intents;
+            IntentList.ItemsSource = intents; IntentList.Visibility = IntentBar.Visibility = intents.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            IntentList.SelectAll();
+        }
+        finally { AskBtn.IsEnabled = true; _acting = false; }
+    }
+    async void RunIntents_Click(object s, RoutedEventArgs e)
+    {
+        var sel = IntentList.SelectedItems.Cast<Ai.Intent>().ToList(); if (sel.Count == 0) return;
+        if (_fg == null) { AiReply.Text = "Нет активного окна."; }
+        _acting = true; var log = new List<string>();
+        try
+        {
+            foreach (var it in (_intents ?? new()).Where(sel.Contains))
+            {
+                var r = await Actions.Run(it, _fg); log.Add(r); AiReply.Text = string.Join("\n", log);
+                if (r.StartsWith("Остановлено") || App.Current.Settings.Paused) break;
+                await Task.Delay(Math.Clamp(App.Current.Settings.StepDelayMs, 200, 10000));
+            }
+        }
+        finally { _acting = false; LoadButtons(); }
+    }
+
+    void LoadStartup() { StartList.ItemsSource = null; StartList.ItemsSource = App.Current.Settings.StartupActions.ToList(); }
+    void StartChk_Click(object s, RoutedEventArgs e) { App.Current.Settings.StartupOptIn = StartChk.IsChecked == true; App.Current.Settings.Save(); }
+    void StartAdd_Click(object s, RoutedEventArgs e)
+    {
+        var arg = StartArg.Text.Trim(); if (arg.Length == 0) return;
+        var kind = new[] { "LaunchExe", "OpenUrl", "RunButton", "Wait" }[Math.Max(0, StartKind.SelectedIndex)];
+        App.Current.Settings.StartupActions.Add(new StartupAction { Kind = kind, Arg = arg }); App.Current.Settings.Save(); StartArg.Text = ""; LoadStartup();
+    }
+    void StartDel_Click(object s, RoutedEventArgs e)
+    {
+        if (StartList.SelectedItem is not StartupAction a) return;
+        App.Current.Settings.StartupActions.Remove(a); App.Current.Settings.Save(); LoadStartup();
+    }
+    async void StartRun_Click(object s, RoutedEventArgs e)
+    {
+        var st = App.Current.Settings; bool was = st.StartupOptIn; st.StartupOptIn = true; _acting = true;
+        try { SafeClose(); await Actions.RunStartup(); } finally { st.StartupOptIn = was; _acting = false; }
+    }
 
     // Deferred, idempotent close: safe from any event handler.
     public void SafeClose()

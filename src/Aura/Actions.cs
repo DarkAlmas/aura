@@ -101,8 +101,8 @@ public static class Actions
     public static string Open(string url)
     {
         url = (url ?? "").Trim();
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var u) || (u.Scheme != Uri.UriSchemeHttp && u.Scheme != Uri.UriSchemeHttps) || !string.IsNullOrEmpty(u.UserInfo) || url.Any(char.IsWhiteSpace))
-        { var m = $"Отказ: открываю только http/https ссылки («{url}»)."; App.Current.Toast("Aura", m); return m; }
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var u) || (u.Scheme != Uri.UriSchemeHttp && u.Scheme != Uri.UriSchemeHttps) || !string.IsNullOrEmpty(u.UserInfo) || url.Any(char.IsWhiteSpace) || url.Length > 2048 || App.Current.Settings.Paused)
+        { var m = App.Current.Settings.Paused ? "Пауза — ничего не открываю." : $"Отказ: открываю только http/https ссылки до 2048 символов («{(url.Length > 80 ? url[..80] + "…" : url)}»)."; App.Current.Toast("Aura", m); return m; }
         url = u.AbsoluteUri;
         try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); return "Открыл " + url; }
         catch (Exception ex) { return "Не открыл: " + ex.Message; }

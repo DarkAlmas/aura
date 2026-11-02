@@ -372,7 +372,7 @@ public partial class OverlayWindow : Window
     void RuleAdd_Click(object s, RoutedEventArgs e)
     {
         var w = RuleWhen.Text.Trim(); var g = RuleSuggest.Text.Trim();
-        if (w.Length == 0 || g.Length == 0) { RuleWhen.Focus(); return; }
+        if (w.Length < 2 || g.Length == 0) { RuleWhen.Focus(); RuleWhen.ToolTip = "«Вижу» — минимум 2 символа, «предложить» — не пусто."; return; }
         Rules.Add(new Rule { When = w, Suggest = g, Process = RuleThisApp.IsChecked == true && _fg != null ? _fg.Process : "" });
         RuleWhen.Text = RuleSuggest.Text = ""; LoadRules(); Rules.Sync();
     }

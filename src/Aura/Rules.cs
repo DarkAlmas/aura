@@ -31,14 +31,21 @@ public static class Rules
         return _cache;
     }
     public static void Save() { Directory.CreateDirectory(Settings.Dir); File.WriteAllText(FilePath, JsonSerializer.Serialize(List(), Opt)); }
-    public static void Add(Rule r) { List().Add(r); Save(); }
+    // v0.6.5: trim; «вижу» must be ≥2 chars (empty would match every window); no duplicates
+    public static void Add(Rule r)
+    {
+        r.When = (r.When ?? "").Trim(); r.Suggest = (r.Suggest ?? "").Trim();
+        if (r.When.Length < 2 || r.Suggest.Length == 0) return;
+        if (List().Any(x => x.When == r.When && x.Suggest == r.Suggest && x.Process == r.Process)) return;
+        List().Add(r); Save();
+    }
     public static void Remove(Rule r) { List().Remove(r); Save(); }
 
     public static int Export(string path) { File.WriteAllText(path, JsonSerializer.Serialize(List(), Opt)); return List().Count; }
     public static int Import(string path)
     {
         var src = JsonSerializer.Deserialize<List<Rule>>(File.ReadAllText(path)) ?? new(); int n = 0;
-        foreach (var r in src.Where(r => r.When.Trim().Length > 0 && r.Suggest.Trim().Length > 0))
+        foreach (var r in src.Where(r => (r.When ?? "").Trim().Length >= 2 && (r.Suggest ?? "").Trim().Length > 0 && r.Suggest.Trim().Length > 0))
             if (!List().Any(x => x.When == r.When && x.Suggest == r.Suggest && x.Process == r.Process)) { List().Add(r); n++; }
         Save(); Sync(); return n;
     }
@@ -47,7 +54,7 @@ public static class Rules
 
     /// Which rules fire for the given UIA snapshot (names only, no screen capture).
     public static List<Rule> Hits(string process, List<UiaFinder.Target> uia) =>
-        For(process).Where(r => uia.Any(t => t.Name.Contains(r.When, StringComparison.OrdinalIgnoreCase))).ToList();
+        For(process).Where(r => r.When.Trim().Length >= 2 && uia.Any(t => t.Name.Contains(r.When, StringComparison.OrdinalIgnoreCase))).ToList();
 
     // ---- background «подсказки» (opt-in RulesOptIn, OFF by default): every 3 s one UIA read of the FOREGROUND window, toast only.
     static DispatcherTimer? _t; static bool _busy;
@@ -72,6 +79,7 @@ public static class Rules
             {
                 var key = fg.Hwnd + "|" + r.When + "|" + r.Suggest;
                 if (_cool.TryGetValue(key, out var u) && u > DateTime.Now) continue;
+                if (_cool.Count > 200) foreach (var k in _cool.Where(c => c.Value < DateTime.Now).Select(c => c.Key).ToList()) _cool.Remove(k);
                 _cool[key] = DateTime.Now.AddSeconds(60);
                 App.Current.LastSuggestion = (r, fg);
                 if (App.Current.Settings.RulesQuiet) { System.Media.SystemSounds.Asterisk.Play(); App.Current.TrayHint($"Подсказка: «{r.Suggest}»"); }

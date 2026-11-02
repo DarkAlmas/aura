@@ -103,6 +103,14 @@ public static class Buttons
         }
         catch { }
     }
+    /// v0.9.10: wipe every saved button image (buttons stay; they fall back to UIA/OCR).
+    public static int DeleteAllTemplates()
+    {
+        int n = 0;
+        foreach (var b in List()) { if (b.HasTemplate || Templates.Exists(b.Id)) { Templates.Delete(b.Id); n++; } b.HasTemplate = false; }
+        try { if (Directory.Exists(Templates.Dir)) foreach (var f in Directory.GetFiles(Templates.Dir, "*.png")) { File.Delete(f); } } catch { }
+        Save(); return n;
+    }
     public static void Delete(LearnedButton b) { Templates.Delete(b.Id); List().RemoveAll(x => x.Same(b)); Save(); }
     /// v0.5.4: export/import learned buttons as JSON (names, actions, positions only — no images, no screenshots).
     public static int Export(string path) { File.WriteAllText(path, JsonSerializer.Serialize(List().Select(b => { var c = JsonSerializer.Deserialize<LearnedButton>(JsonSerializer.Serialize(b, Opt), Opt)!; c.HasTemplate = false; return c; }).ToList(), Opt)); return List().Count; }

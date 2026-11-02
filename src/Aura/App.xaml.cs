@@ -48,6 +48,7 @@ public partial class App : Application
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add(new Forms.ToolStripMenuItem($"Aura {Version}") { Enabled = false });
         menu.Items.Add("🛡 Что Aura сейчас может (проверка)", null, (_, _) => ShowSafetyReport());
+        menu.Items.Add("🗑 Удалить все картинки кнопок", null, (_, _) => { var n = Buttons.DeleteAllTemplates(); _overlay?.Reload(); Toast("Aura", n == 0 ? "Картинок не было." : $"Удалил картинки: {n}. Кнопки остались (UIA/OCR)."); });
         menu.Items.Add("📁 Папка данных Aura", null, (_, _) => { System.IO.Directory.CreateDirectory(Aura.Settings.Dir); OpenPath(Aura.Settings.Dir); });
         menu.Items.Add("📄 Журнал ошибок", null, (_, _) => { var p = System.IO.Path.Combine(Aura.Settings.Dir, "crash.log"); if (System.IO.File.Exists(p)) OpenPath(p); else Toast("Aura", "Ошибок не было."); });
         var openItem = menu.Items.Add("Открыть (Win+Shift+Z)", null, (_, _) => RequestOverlay());

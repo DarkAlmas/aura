@@ -8,7 +8,7 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <AssemblyName>Aura</AssemblyName>
     <RootNamespace>Aura</RootNamespace>
-    <Version>0.9.32</Version>
+    <Version>0.9.33</Version>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>

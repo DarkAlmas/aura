@@ -10,7 +10,7 @@
           <TextBlock x:Name="Ctx" Text="AURA" FontSize="11" Foreground="{StaticResource Muted}"/>
           <TextBlock Text="Aura" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource Text}" Margin="0,2,0,0"/>
         </StackPanel>
-        <Button Style="{StaticResource Ghost}" HorizontalAlignment="Right" VerticalAlignment="Top" Click="Close_Click"><TextBlock Text="×" FontSize="16"/></Button>
+        <Button Style="{StaticResource Ghost}" HorizontalAlignment="Right" VerticalAlignment="Top" Click="Close_Click" ToolTip="Закрыть (Esc)" AutomationProperties.Name="Закрыть"><TextBlock Text="×" FontSize="16"/></Button>
       </Grid>
 
       <Border CornerRadius="12" Padding="12" Background="{StaticResource CardBg}" Margin="0,0,0,8">

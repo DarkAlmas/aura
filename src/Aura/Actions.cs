@@ -82,7 +82,7 @@ public static class Actions
     {
         var p = Environment.ExpandEnvironmentVariables((path ?? "").Trim().Trim('"'));
         if (p.Length == 0) return "Пустой путь.";
-        if (p.Contains("..") || p.Contains("://") || p.StartsWith(@"\\") || p.StartsWith("//") || p.IndexOfAny(new[] { '|', '&', '<', '>', '^' }) >= 0) return $"Отказ: недопустимый путь «{p}».";
+        if (p.Contains("..") || p.Contains("://") || p.StartsWith(@"\\") || p.StartsWith("//") || p.IndexOfAny(new[] { '|', '&', '<', '>', '^', '%', '*', '?' }) >= 0 || p.IndexOf(':', 2) >= 0) return $"Отказ: недопустимый путь «{p}».";
         if (!System.IO.Path.IsPathFullyQualified(p)) return $"Отказ: нужен полный путь, а не «{p}».";
         if (!LaunchExt.Contains(System.IO.Path.GetExtension(p).ToLowerInvariant())) return $"Отказ: запускаю только .exe/.bat/.cmd («{p}»).";
         if (!System.IO.File.Exists(p)) return $"Отказ: файла нет «{p}».";
@@ -94,8 +94,8 @@ public static class Actions
     {
         var bad = LaunchProblem(path, fromAi);
         if (bad != null) { App.Current.Toast("Aura", bad); return bad; }
-        path = Environment.ExpandEnvironmentVariables(path.Trim().Trim('"'));
-        try { Process.Start(new ProcessStartInfo(Environment.ExpandEnvironmentVariables(path.Trim('"'))) { UseShellExecute = true }); return "Запустил " + path; }
+        path = Environment.ExpandEnvironmentVariables(path.Trim().Trim('"')); // v0.9.21: expanded exactly once — the checked path is the launched path
+        try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); return "Запустил " + path; }
         catch (Exception ex) { return "Не запустил: " + ex.Message; }
     }
     public static string Open(string url)

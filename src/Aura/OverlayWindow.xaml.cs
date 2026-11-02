@@ -53,6 +53,7 @@ public partial class OverlayWindow : Window
         Deactivated += (_, _) => { if (_armed && IsLoaded && !_acting) SafeClose(); };
         Closing += (_, _) => { _closing = true; ClearHighlight(); DelayBox_LostFocus(this, new RoutedEventArgs()); };
         Closed += (_, _) => { try { _hl?.Close(); } catch { } _hl = null; };
+        KeyDown += (_, e) => { if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control && e.OriginalSource is not System.Windows.Controls.Primitives.TextBoxBase) { BtnUndo_Click(this, new RoutedEventArgs()); e.Handled = true; } }; // v0.9.8 Ctrl+Z = forget last remembered
         KeyDown += (_, e) => { if (e.Key == Key.Escape) { if (_acting || App.Current.ActionCts != null) App.Current.ActionCts?.Cancel(); else if (_sel != null) { Matches.SelectedItem = null; } else SafeClose(); } };
     }
 

@@ -74,7 +74,13 @@ public static class Buttons
         var l = List();
         var old = l.FirstOrDefault(x => x.Same(b));
         if (old != null) { old.Action = act; b = old; } else l.Add(b);
-        if (template && !b.HasTemplate) b.HasTemplate = Templates.Save(b.Id, t.Bounds);
+        // v0.9.8 (Formal INFO): OCR hits/buttons NEVER get an image; a flag without a file on disk is re-created (or cleared)
+        if (ocr || b.Ocr) { if (b.HasTemplate || Templates.Exists(b.Id)) Templates.Delete(b.Id); b.HasTemplate = false; }
+        else
+        {
+            if (b.HasTemplate && !Templates.Exists(b.Id)) b.HasTemplate = false;
+            if (template && !b.HasTemplate) b.HasTemplate = Templates.Save(b.Id, t.Bounds);
+        }
         Save(); return b;
     }
     public static void Delete(LearnedButton b) { Templates.Delete(b.Id); List().RemoveAll(x => x.Same(b)); Save(); }

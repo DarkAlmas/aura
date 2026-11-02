@@ -20,7 +20,7 @@ public static class Ai
     /// v0.5.1: short chat history (last 8 messages, memory only, cleared on «Новый чат» / restart).
     public static readonly List<(string Role, string Text)> History = new();
     public static void Reset() => History.Clear();
-    static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(60) };
+    static readonly HttpClient Http = new(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(60), MaxResponseContentBufferSize = 2_000_000 }; // v0.9.20: no redirects (key never follows), ≤2 MB reply
 
     public sealed record Intent(string Kind, string Arg)
     {
@@ -86,6 +86,7 @@ RULE: <текст, который появляется в окне> => <имя �
             if (!resp.IsSuccessStatusCode) return ($"ИИ ответил ошибкой {(int)resp.StatusCode}. {Trim(json, 200)}", new());
             using var doc = JsonDocument.Parse(json);
             var text = doc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString() ?? "";
+            if (text.Length > 8000) text = text[..8000];
             var intents = Parse(text);
             var clean = string.Join("\n", text.Split('\n').Where(l => !Rx.IsMatch(l))).Trim();
             History.Add(("user", request)); History.Add(("assistant", text));

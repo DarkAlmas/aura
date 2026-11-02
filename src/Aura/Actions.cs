@@ -105,9 +105,10 @@ public static class Actions
         await Task.Delay(2000);
         if (st.Paused) return;
         App.Current.Toast("Aura · При старте", $"Выполняю {st.StartupActions.Count} действ. (Пауза — отмена).");
+        StopAll = false;
         foreach (var a in st.StartupActions.ToList())
         {
-            if (App.Current.Settings.Paused) return;
+            if (App.Current.Settings.Paused || StopAll) return;
             var it = a.Kind switch { "LaunchExe" => new Ai.Intent("LAUNCH", a.Arg), "OpenUrl" => new Ai.Intent("OPEN", a.Arg), "Wait" => new Ai.Intent("WAIT", a.Arg), _ => new Ai.Intent("CLICK", a.Arg) };
             var fg = Native.Foreground();
             await Run(it, fg != null && fg.Pid != Environment.ProcessId ? fg : null);
@@ -117,11 +118,15 @@ public static class Actions
 
     /// «Серия»: run selected learned buttons one after another in the current foreground window, each with «Делаю».
     /// v0.5.3: keeps running if the overlay is closed; always ends with a tray toast «Серия: k из n» (stopped/left/paused are explicit).
+    /// v0.5.6: tray «Стоп всё» — cancels the current «Делаю» and all remaining series/startup/AI steps.
+    public static volatile bool StopAll;
+    public static void Stop() { StopAll = true; App.Current.ActionCts?.Cancel(); App.Current.Toast("Aura", "Стоп: текущее действие и серия отменены."); }
     public static async Task<string> RunSeries(IEnumerable<LearnedButton> list, Native.WindowInfo fg)
     {
-        var l = list.ToList(); int done = 0; string why = "";
+        var l = list.ToList(); int done = 0; string why = ""; StopAll = false;
         foreach (var b in l)
         {
+            if (StopAll) { why = " — Стоп"; break; }
             if (App.Current.Settings.Paused) { why = " — пауза"; break; }
             if (!Native.IsWindow(fg.Hwnd)) { why = " — окно закрыто"; break; }
             var r = await Run(new Ai.Intent(b.Action == ClickAction.DoubleClick ? "DOUBLECLICK" : b.Action == ClickAction.RightClick ? "RIGHTCLICK" : "CLICK", b.Name), fg, guardLeft: true);

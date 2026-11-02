@@ -289,13 +289,13 @@ public partial class OverlayWindow : Window
     {
         var sel = IntentList.SelectedItems.Cast<Ai.Intent>().ToList(); if (sel.Count == 0) return;
         if (_fg == null && sel.Any(i => i.Kind is not ("LAUNCH" or "OPEN" or "WAIT"))) { AiReply.Text = "Нет активного окна — клики не выполняю."; return; }
-        _acting = true; var log = new List<string>();
+        _acting = true; var log = new List<string>(); Actions.StopAll = false;
         try
         {
             foreach (var it in (_intents ?? new()).Where(sel.Contains))
             {
                 var r = await Actions.Run(it, _fg, guardLeft: true, fromAi: true); log.Add(r); AiReply.Text = string.Join("\n", log);
-                if (r.StartsWith("Остановлено") || App.Current.Settings.Paused) { log.Add("Прервано — остальные пункты не выполнены."); AiReply.Text = string.Join("\n", log); break; }
+                if (r.StartsWith("Остановлено") || App.Current.Settings.Paused || Actions.StopAll) { log.Add("Прервано — остальные пункты не выполнены."); AiReply.Text = string.Join("\n", log); break; }
                 await Task.Delay(Math.Clamp(App.Current.Settings.StepDelayMs, 200, 10000));
             }
         }

@@ -47,6 +47,7 @@ public partial class App : Application
         _aiItem = new Forms.ToolStripMenuItem("ИИ (сеть, opt-in)", null, (_, _) => { Settings.AiOptIn = !Settings.AiOptIn; Settings.Save(); SyncMenu(); });
         menu.Items.Add(_pauseItem); menu.Items.Add(_ocrItem); menu.Items.Add(_actItem); menu.Items.Add(_aiItem);
         menu.Items.Add("Запомнить под курсором (через 3 с)", null, (_, _) => RememberUnderCursor(3));
+        menu.Items.Add("⏹ Стоп всё (действие/серия)", null, (_, _) => Actions.Stop());
         menu.Items.Add("Экспорт кнопок…", null, (_, _) =>
         {
             var d = new Microsoft.Win32.SaveFileDialog { FileName = "aura-buttons.json", Filter = "JSON|*.json" };

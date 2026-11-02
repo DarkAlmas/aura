@@ -39,6 +39,9 @@ public static class Rules
     {
         r.When = (r.When ?? "").Trim(); r.Suggest = (r.Suggest ?? "").Trim();
         if (r.When.Length < 2 || r.Suggest.Length == 0) return;
+        // v0.9.15: bounded — long text trimmed, max 200 rules, never for an excluded app
+        if (r.When.Length > 100) r.When = r.When[..100]; if (r.Suggest.Length > 60) r.Suggest = r.Suggest[..60];
+        if (List().Count >= 200 || (!string.IsNullOrEmpty(r.Process) && App.Current.Settings.IsExcluded(r.Process))) return;
         if (List().Any(x => x.When == r.When && x.Suggest == r.Suggest && x.Process == r.Process)) return;
         List().Add(r); Save();
     }

@@ -298,7 +298,7 @@ public partial class OverlayWindow : Window
         try
         {
             string? text = null;
-            if (st.AiAttachText && st.ScreenCaptureOptIn && _fg != null && !st.IsExcluded(_fg.Process) && OcrFinder.Available)
+            if (st.AiOptIn && st.AiAttachText && st.ScreenCaptureOptIn && _fg != null && !st.IsExcluded(_fg.Process) && OcrFinder.Available)
             {
                 var w = await OcrFinder.Find(_fg.Hwnd, "", OverlayPx());
                 if (w != null) text = string.Join(" | ", w.Where(t => t.Name.Contains(' ') || t.Name.Length > 1).Select(t => t.Name).Distinct().Take(200));
@@ -315,6 +315,7 @@ public partial class OverlayWindow : Window
     }
     async void RunIntents_Click(object s, RoutedEventArgs e)
     {
+        if (_acting) return; // v0.9.24: a second click while running does not start a second run
         var sel = IntentList.SelectedItems.Cast<Ai.Intent>().ToList(); if (sel.Count == 0) return;
         if (_fg == null && sel.Any(i => i.Kind is not ("LAUNCH" or "OPEN" or "WAIT"))) { AiReply.Text = "Нет активного окна — клики не выполняю."; return; }
         _acting = true; var log = new List<string>(); Actions.StopAll = false;
@@ -327,7 +328,7 @@ public partial class OverlayWindow : Window
                 await Task.Delay(Math.Clamp(App.Current.Settings.StepDelayMs, 200, 10000));
             }
         }
-        finally { _acting = false; LoadButtons(); }
+        finally { _acting = false; LoadButtons(); _intents = null; IntentList.ItemsSource = null; IntentList.Visibility = IntentBar.Visibility = Visibility.Collapsed; } // v0.9.24: a plan runs once
     }
 
     static string HistText() => string.Join("\n\n", Ai.History.TakeLast(8).Select(h => (h.Role == "user" ? "Ты: " : "Aura: ") + h.Text.Trim()));

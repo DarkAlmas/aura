@@ -50,14 +50,18 @@ RULE: <текст, который появляется в окне> => <имя �
     {
         var st = App.Current.Settings;
         if (!st.AiOptIn) return ("ИИ выключен: включи «ИИ (сеть)».", new());
-        var learned = Buttons.List().Where(b => fg == null || string.Equals(b.Process, fg.Process, StringComparison.OrdinalIgnoreCase)).Select(b => b.Name).Distinct().Take(60).ToList();
+        if (st.Paused) return ("Aura на паузе — в сеть ничего не отправляю.", new()); // v0.9.5
+        // v0.9.5: nothing about excluded apps leaves the PC — not their window text, button names or rules
+        bool exFg = fg != null && st.IsExcluded(fg.Process);
+        if (exFg) windowText = null;
+        var learned = exFg ? new List<string>() : Buttons.List().Where(b => fg == null || string.Equals(b.Process, fg.Process, StringComparison.OrdinalIgnoreCase)).Select(b => b.Name).Distinct().Take(60).ToList();
         var ctx = new Dictionary<string, object?>
         {
             ["app"] = fg?.Process, ["title"] = fg == null || st.IsExcluded(fg.Process) ? null : fg.Title,
             ["learned_buttons"] = learned,
             ["startup_programs"] = st.StartupActions.Where(a => a.Kind == "LaunchExe").Select(a => a.Arg).ToList(),
-            ["rules"] = Rules.List().Select(r => r.ToString()).Take(30).ToList(),
-            ["all_learned"] = Buttons.List().Select(b => b.Process + ": " + b.Name).Distinct().Take(80).ToList(),
+            ["rules"] = Rules.List().Where(r => !st.IsExcluded(r.Process)).Select(r => r.ToString()).Take(30).ToList(),
+            ["all_learned"] = Buttons.List().Where(b => !st.IsExcluded(b.Process)).Select(b => b.Process + ": " + b.Name).Distinct().Take(80).ToList(),
         };
         if (!string.IsNullOrWhiteSpace(windowText)) ctx["window_text"] = windowText!.Length > 3000 ? windowText[..3000] : windowText;
         var body = new

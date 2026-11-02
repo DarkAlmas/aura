@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 
 namespace Aura;
@@ -105,6 +106,7 @@ public sealed class Settings
             if (File.Exists(FilePath))
             {
                 var txt = File.ReadAllText(FilePath); var r = LoadJson<Settings>(FilePath) ?? new();
+                r.Normalize();
                 if (txt.Contains("\"AiKey\"")) { r.Save(); try { File.Delete(FilePath + ".bak"); } catch { } } // rewrite without the plain key; drop the .bak that still had it
                 return r;
             }
@@ -116,6 +118,13 @@ public sealed class Settings
     {
         Directory.CreateDirectory(Dir);
         AtomicWrite(FilePath, JsonSerializer.Serialize(this, Opt));
+    }
+    /// v0.9.39: hand-edited settings.json can't crash or bloat Aura (null lists, huge lists, empty names).
+    void Normalize()
+    {
+        static List<string> L(List<string>? l, int max) => (l ?? new()).Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Take(max).ToList();
+        ExcludedApps = L(ExcludedApps, 200); AutoAllowed = L(AutoAllowed, 200); ActDisabledApps = L(ActDisabledApps, 200);
+        StartupActions = (StartupActions ?? new()).Where(a => a != null && !string.IsNullOrWhiteSpace(a.Kind)).Take(20).ToList();
     }
     public bool IsExcluded(string process) =>
         AlwaysExcluded.Contains(process ?? "") || ExcludedApps.Exists(a => string.Equals(a, process, StringComparison.OrdinalIgnoreCase));

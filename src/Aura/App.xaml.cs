@@ -290,6 +290,7 @@ public partial class App : Application
     string _lastToast = ""; DateTime _lastToastAt = DateTime.MinValue;
     public void Toast(string title, string text)
     {
+        if (!Dispatcher.CheckAccess()) { Dispatcher.BeginInvoke(() => Toast(title, text)); return; } // v0.9.18: safe from worker threads
         var key = title + "|" + text;
         if (key == _lastToast && (DateTime.Now - _lastToastAt).TotalSeconds < 5) return;
         _lastToast = key; _lastToastAt = DateTime.Now; _hintAt = DateTime.MinValue;

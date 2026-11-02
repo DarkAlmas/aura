@@ -87,7 +87,7 @@ public static class UiaFinder
     {
         var el = t.Element;
         string an = act == ClickAction.DoubleClick ? "двойной" : act == ClickAction.RightClick ? "правый" : "мышь";
-        if (el == null) { Native.ActAt((int)(t.Bounds.X + t.Bounds.Width / 2), (int)(t.Bounds.Y + t.Bounds.Height / 2), act); return an + (t.Type == "OCR" ? " (OCR)" : " (картинка)"); }
+        if (el == null) { if (CoveredBy((int)(t.Bounds.X + t.Bounds.Width / 2), (int)(t.Bounds.Y + t.Bounds.Height / 2)) is string c1) return c1; Native.ActAt((int)(t.Bounds.X + t.Bounds.Width / 2), (int)(t.Bounds.Y + t.Bounds.Height / 2), act); return an + (t.Type == "OCR" ? " (OCR)" : " (картинка)"); }
         if (act == ClickAction.Click) try
         {
             if (el.TryGetCurrentPattern(InvokePattern.Pattern, out var p)) { ((InvokePattern)p).Invoke(); return "Invoke"; }
@@ -99,7 +99,21 @@ public static class UiaFinder
         Point pt;
         try { if (!el.TryGetClickablePoint(out pt)) pt = new Point(t.Bounds.X + t.Bounds.Width / 2, t.Bounds.Y + t.Bounds.Height / 2); }
         catch { pt = new Point(t.Bounds.X + t.Bounds.Width / 2, t.Bounds.Y + t.Bounds.Height / 2); }
+        if (CoveredBy((int)pt.X, (int)pt.Y) is string c2) return c2;
         Native.ActAt((int)pt.X, (int)pt.Y, act);
         return an;
+    }
+    /// v0.9.11: before a coordinate click, check what is REALLY under that point — never click into an excluded app or Aura itself (e.g. a popup covered the button).
+    static string? CoveredBy(int x, int y)
+    {
+        try
+        {
+            var w = Native.WindowAt(new Native.POINT { X = x, Y = y });
+            if (w == null) return null;
+            if (w.Pid == System.Environment.ProcessId) return "не нажал: точку закрывает окно Aura";
+            if (App.Current.Settings.IsExcluded(w.Process)) return $"не нажал: точку закрывает {w.Process} (исключение)";
+        }
+        catch { }
+        return null;
     }
 }

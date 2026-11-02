@@ -46,13 +46,15 @@ public static class Native
     /// v0.5.0: one confirmed action at a point — Click / DoubleClick / RightClick (SendInput, no hooks).
     public static void ActAt(int x, int y, ClickAction act)
     {
+        bool had = GetCursorPos(out var back);
         SetCursorPos(x, y);
-        switch (act)
+        try { switch (act)
         {
             case ClickAction.DoubleClick: Send(LEFTDOWN, LEFTUP); System.Threading.Thread.Sleep((int)Math.Min(60, GetDoubleClickTime() / 4)); Send(LEFTDOWN, LEFTUP); break;
             case ClickAction.RightClick: Send(RIGHTDOWN, RIGHTUP); break;
             default: Send(LEFTDOWN, LEFTUP); break;
-        }
+        } }
+        finally { if (had) { System.Threading.Thread.Sleep(40); SetCursorPos(back.X, back.Y); } } // v0.9.12: mouse returns where the user left it
     }
     /// Root window + process under a screen point (for «Под курсором»).
     public static WindowInfo? WindowAt(POINT p)
